@@ -20,9 +20,8 @@ const notoSans = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "culturego — 世界の進む方向を読む",
-  description:
-    "世界・日本・ベトナムで進む構造シフトを週1で集めるスローメディア。",
+  title: "CultureGo",
+  description: "週刊のスローメディア",
 };
 
 export default async function RootLayout({
