@@ -42,17 +42,31 @@ export async function backfillHeroImages(): Promise<BackfillResult> {
   if (!missing || missing.length === 0)
     return { ok: true, updated: 0, skipped: 0 };
 
-  const results = await Promise.all(
-    missing.map(async (c) => {
-      const url = (c.source_urls as string[] | null)?.[0];
-      if (!url) return "skipped" as const;
-      const hero = await fetchOgImage(url);
-      if (!hero) return "skipped" as const;
-      const upd = await supabase
-        .from("cards")
-        .update({ hero_image_url: hero })
-        .eq("id", c.id);
-      return upd.error ? ("skipped" as const) : ("updated" as const);
+  // Microlink への rate limit 配慮で並列度 3 まで
+  const CONCURRENCY = 3;
+  const results: ("updated" | "skipped")[] = [];
+  let cursor = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, missing.length) }, async () => {
+      while (cursor < missing.length) {
+        const i = cursor++;
+        const c = missing[i];
+        const url = (c.source_urls as string[] | null)?.[0];
+        if (!url) {
+          results[i] = "skipped";
+          continue;
+        }
+        const hero = await fetchOgImage(url);
+        if (!hero) {
+          results[i] = "skipped";
+          continue;
+        }
+        const upd = await supabase
+          .from("cards")
+          .update({ hero_image_url: hero })
+          .eq("id", c.id);
+        results[i] = upd.error ? "skipped" : "updated";
+      }
     }),
   );
 
