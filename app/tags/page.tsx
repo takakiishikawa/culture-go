@@ -11,7 +11,7 @@ export default async function TagsPage() {
 
   const { data, error } = await supabase
     .from("tags")
-    .select("id, user_id, name, display_order, created_at, updated_at")
+    .select("id, name, display_order, created_at, updated_at")
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
 

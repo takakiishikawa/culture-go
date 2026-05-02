@@ -10,7 +10,6 @@ export interface RelatedArticle {
 
 export interface Tag {
   id: string;
-  user_id: string;
   name: string;
   display_order: number;
   created_at: string;
