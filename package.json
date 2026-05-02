@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "detect": "tsx scripts/detect-events.ts"
+    "detect": "tsx scripts/detect-events.ts",
+    "refetch-image": "tsx scripts/refetch-image.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
