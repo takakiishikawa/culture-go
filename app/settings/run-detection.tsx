@@ -16,6 +16,19 @@ export function RunDetectionButton() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ lookbackDays: 7 }),
       });
+
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+
+      // Vercel function timeout / 5xx 等で JSON が返らないケース
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        const text = (await res.text()).slice(0, 200);
+        toast.error(
+          `検出に失敗 (HTTP ${res.status}, ${elapsed}s): ${text || "non-JSON response"}`,
+        );
+        return;
+      }
+
       const data = (await res.json()) as
         | {
             ok: true;
@@ -28,8 +41,6 @@ export function RunDetectionButton() {
           }
         | { ok: false; error: string };
 
-      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-
       if (!data.ok) {
         toast.error(`検出に失敗: ${data.error}`);
         return;
@@ -40,7 +51,13 @@ export function RunDetectionButton() {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "ネットワークエラー";
-      toast.error(`検出に失敗: ${message}`);
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      // "Failed to fetch" は Vercel Hobby の 60s 関数タイムアウトが最有力
+      const hint =
+        message === "Failed to fetch"
+          ? `（${elapsed}s で接続が切れた。Vercel 関数タイムアウト 60s の可能性が高い）`
+          : "";
+      toast.error(`検出に失敗: ${message}${hint}`);
     } finally {
       setLoading(false);
     }

@@ -28,13 +28,42 @@ export interface DetectionSummary {
   errors: string[];
 }
 
-const MODEL = "claude-sonnet-4-5-20250929";
+/**
+ * mode:
+ *  - "full": Sonnet 4.6 + web search 8 回 / 候補 8 件 / 16k tokens。cron で実行する想定。
+ *  - "fast": Haiku 4.5 + web search 3 回 / 候補 4 件 / 6k tokens。Vercel Hobby の
+ *           60s 制限内で in-app verification ボタン用。
+ */
+export type DetectionMode = "full" | "fast";
+
+interface DetectionConfig {
+  model: string;
+  maxWebSearches: number;
+  maxCandidates: number;
+  maxTokens: number;
+}
+
+const CONFIGS: Record<DetectionMode, DetectionConfig> = {
+  full: {
+    model: "claude-sonnet-4-6",
+    maxWebSearches: 8,
+    maxCandidates: 8,
+    maxTokens: 16000,
+  },
+  fast: {
+    model: "claude-haiku-4-5-20251001",
+    maxWebSearches: 3,
+    maxCandidates: 4,
+    maxTokens: 6000,
+  },
+};
 
 export async function runDetection(
   sb: CulturegoClient,
-  opts: { lookbackDays?: number } = {},
+  opts: { lookbackDays?: number; mode?: DetectionMode } = {},
 ): Promise<DetectionSummary> {
   const lookback = opts.lookbackDays ?? 7;
+  const cfg = CONFIGS[opts.mode ?? "full"];
   const anthropic = new Anthropic();
 
   const [{ data: tagRows }, dimensions] = await Promise.all([
@@ -61,7 +90,7 @@ ${dimensionDescriptions}
 
 ユーザーの興味タグ（このタグに合致するものを優先するが、これらに限らず本当に大きい出来事は含める）: ${tagNames.join("、") || "（未設定）"}`;
 
-  const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる「大きな出来事」を最大 8 件まで挙げ、各候補に ${dimensions.length} 軸スコアを付けて submit_candidates ツールで提出してください。
+  const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる「大きな出来事」を最大 ${cfg.maxCandidates} 件まで挙げ、各候補に ${dimensions.length} 軸スコアを付けて submit_candidates ツールで提出してください。
 
 各候補について:
 - title: 一文で本質を捉える（30 字以内）
@@ -161,13 +190,13 @@ ${dimensionDescriptions}
     {
       type: "web_search_20250305",
       name: "web_search",
-      max_uses: 8,
+      max_uses: cfg.maxWebSearches,
     },
   ] as unknown as ToolDef[];
 
   const message = await anthropic.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
+    model: cfg.model,
+    max_tokens: cfg.maxTokens,
     system: systemPrompt,
     tools: allTools,
     tool_choice: { type: "auto" },

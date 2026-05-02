@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { runDetection } from "@/lib/detect/run";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // detection w/ web search may run a few minutes
+// Vercel Hobby は最大 60s。fast mode に絞ってこの枠に収める。
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   // ログイン必須（proxy.ts で弾くがここでも明示）
@@ -28,7 +29,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const summary = await runDetection(supabase, { lookbackDays });
+    const summary = await runDetection(supabase, {
+      lookbackDays,
+      mode: "fast",
+    });
     return NextResponse.json({ ok: true, summary });
   } catch (err) {
     const message = err instanceof Error ? err.message : "detection failed";
