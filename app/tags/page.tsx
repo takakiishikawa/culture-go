@@ -22,7 +22,7 @@ export default async function TagsPage() {
         <h1 className="cg-display text-3xl text-[var(--cg-text)]">
           タグの読み込みに失敗しました
         </h1>
-        <p className="cg-body-serif mt-4 text-[var(--cg-text-secondary)]">
+        <p className="cg-body mt-4 text-[var(--cg-text-secondary)]">
           {error.message}
         </p>
       </main>
@@ -38,7 +38,7 @@ export default async function TagsPage() {
         <h1 className="cg-display text-3xl text-[var(--cg-text)]">
           興味のあるドメイン
         </h1>
-        <p className="cg-body-serif text-[var(--cg-text-secondary)]">
+        <p className="cg-body text-[var(--cg-text-secondary)]">
           1 語で簡潔に。並びはドラッグで入れ替えられます。
         </p>
       </header>

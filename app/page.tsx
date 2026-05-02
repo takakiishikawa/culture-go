@@ -9,7 +9,7 @@ export default function HomePage() {
         <br />
         週次の点火装置。
       </h1>
-      <p className="cg-body-serif mt-8 text-lg text-[var(--cg-text-secondary)]">
+      <p className="cg-body mt-8 text-lg text-[var(--cg-text-secondary)]">
         Phase 0 scaffold. ギャラリー / カード詳細は Phase 2 で実装します。
       </p>
       <p className="mt-10">

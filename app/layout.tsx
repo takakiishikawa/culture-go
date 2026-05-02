@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import { Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { DesignTokens } from "@takaki/go-design-system";
 import { ClientProviders } from "./client-providers";
 
-const notoSans = Noto_Sans_JP({
-  weight: ["400", "500", "700"],
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  variable: "--font-noto-sans",
+  weight: ["400", "500"],
   display: "swap",
 });
 
-const notoSerif = Noto_Serif_JP({
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-noto-serif",
+const notoSans = Noto_Sans_JP({
+  variable: "--font-noto-sans",
+  weight: ["400", "500", "700"],
   display: "swap",
 });
 
@@ -32,7 +31,7 @@ export default function RootLayout({
   return (
     <html
       lang="ja"
-      className={`${notoSans.variable} ${notoSerif.variable} h-full antialiased`}
+      className={`${inter.variable} ${notoSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
