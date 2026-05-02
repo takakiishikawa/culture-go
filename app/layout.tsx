@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
-import { DesignTokens } from "@takaki/go-design-system";
+import { AppLayout, DesignTokens } from "@takaki/go-design-system";
 import { ClientProviders } from "./client-providers";
+import { CultureGoSidebar } from "@/components/layout/culture-go-sidebar";
+import { createClient } from "@/lib/supabase/server";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,11 +25,16 @@ export const metadata: Metadata = {
     "世界・日本・ベトナムで起きる「大きな出来事」を週1で検出する、深掘りのトリガー。",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <html
       lang="ja"
@@ -43,7 +50,11 @@ export default function RootLayout({
         <DesignTokens primaryColor="#1F2937" primaryColorHover="#0F172A" />
       </head>
       <body className="min-h-full">
-        {children}
+        {user ? (
+          <AppLayout sidebar={<CultureGoSidebar />}>{children}</AppLayout>
+        ) : (
+          <main>{children}</main>
+        )}
         <ClientProviders />
       </body>
     </html>
