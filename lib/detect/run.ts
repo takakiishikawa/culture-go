@@ -1,0 +1,231 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  SCORING_DIMENSIONS,
+  SIGNIFICANCE_THRESHOLD,
+  computeSignificance,
+  type DimensionScores,
+} from "./scoring";
+
+interface Candidate {
+  title: string;
+  summary: string;
+  why_important: string;
+  source_urls: string[];
+  scope: "world" | "japan" | "vietnam";
+  keywords?: string[];
+  tags?: string[];
+  related_articles?: { title: string; url: string }[];
+  scores: DimensionScores;
+  published_at?: string;
+}
+
+export interface DetectionSummary {
+  candidatesGenerated: number;
+  inserted: number;
+  skippedBelowThreshold: number;
+  insertedCardIds: string[];
+  errors: string[];
+}
+
+const MODEL = "claude-sonnet-4-5-20250929";
+
+export async function runDetection(
+  opts: { lookbackDays?: number } = {},
+): Promise<DetectionSummary> {
+  const lookback = opts.lookbackDays ?? 7;
+  const anthropic = new Anthropic();
+  const sb = createAdminClient();
+
+  const { data: tagRows } = await sb
+    .from("tags")
+    .select("name")
+    .order("display_order", { ascending: true });
+  const tagNames = (tagRows ?? []).map((t) => t.name);
+
+  const dimensionDescriptions = SCORING_DIMENSIONS.map(
+    (d) =>
+      `- ${d.key} (label: ${d.label}, weight: ${d.weight}): ${d.description}\n  rubric: ${d.rubric}`,
+  ).join("\n");
+
+  const systemPrompt = `あなたは "culturego" という週刊スローメディアの編集者です。世界の進む方向を変えうる「大きな出来事」だけを選び抜きます。瑣末なニュースは絶対に含めない。
+
+スコアは以下の 5 軸を 0–10 で採点し、重み付き和で 0–10 のスコアを出します:
+${dimensionDescriptions}
+
+しきい値: 重み付き総合スコアが ${SIGNIFICANCE_THRESHOLD} 未満のものは publish せず、それ以上のものだけを返してください。ただしリストには候補として全て含めて構いません（こちらでフィルタします）。
+
+ユーザーの興味タグ（このタグに合致するものを優先するが、これらに限らず本当に大きい出来事は含める）: ${tagNames.join("、") || "（未設定）"}`;
+
+  const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる「大きな出来事」を最大 8 件まで挙げ、各候補に 5 軸スコアを付けて submit_candidates ツールで提出してください。
+
+各候補について:
+- title: 一文で本質を捉える（30 字以内）
+- summary: 何が起きたか（120–200 字）
+- why_important: なぜ世界の方向に効くか（120–200 字、Stratechery 風の構造的視点）
+- source_urls: 一次〜信頼できる二次ソースの URL（複数）
+- scope: world / japan / vietnam
+- keywords: 5–10 の検索可能キーワード
+- tags: ユーザータグから合致するもの（無くてよい）
+- scores: 5 軸を 0–10 で
+- published_at: 出来事の発生日 (ISO8601)`;
+
+  type ToolDef = Anthropic.Messages.Tool;
+
+  const tools: ToolDef[] = [
+    {
+      name: "submit_candidates",
+      description: "検出した候補をスコア付きで提出する",
+      input_schema: {
+        type: "object",
+        properties: {
+          candidates: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                summary: { type: "string" },
+                why_important: { type: "string" },
+                source_urls: {
+                  type: "array",
+                  items: { type: "string", format: "uri" },
+                },
+                scope: {
+                  type: "string",
+                  enum: ["world", "japan", "vietnam"],
+                },
+                keywords: { type: "array", items: { type: "string" } },
+                tags: { type: "array", items: { type: "string" } },
+                related_articles: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      title: { type: "string" },
+                      url: { type: "string", format: "uri" },
+                    },
+                    required: ["title", "url"],
+                  },
+                },
+                scores: {
+                  type: "object",
+                  properties: Object.fromEntries(
+                    SCORING_DIMENSIONS.map((d) => [
+                      d.key,
+                      {
+                        type: "number",
+                        minimum: 0,
+                        maximum: 10,
+                        description: d.description,
+                      },
+                    ]),
+                  ),
+                  required: SCORING_DIMENSIONS.map((d) => d.key),
+                },
+                published_at: { type: "string", format: "date-time" },
+              },
+              required: [
+                "title",
+                "summary",
+                "why_important",
+                "source_urls",
+                "scope",
+                "scores",
+              ],
+            },
+          },
+        },
+        required: ["candidates"],
+      },
+    },
+  ];
+
+  // web 検索ツール（Anthropic 提供のサーバーツール）。SDK 型に未掲載のため拡張で渡す。
+  const allTools = [
+    ...tools,
+    {
+      type: "web_search_20250305",
+      name: "web_search",
+      max_uses: 8,
+    },
+  ] as unknown as ToolDef[];
+
+  const message = await anthropic.messages.create({
+    model: MODEL,
+    max_tokens: 16000,
+    system: systemPrompt,
+    tools: allTools,
+    tool_choice: { type: "auto" },
+    messages: [{ role: "user", content: userPrompt }],
+  });
+
+  const submission = message.content.find(
+    (b): b is Anthropic.Messages.ToolUseBlock =>
+      b.type === "tool_use" && b.name === "submit_candidates",
+  );
+  if (!submission) {
+    throw new Error("検出ツールの呼び出しが返されませんでした");
+  }
+
+  const candidates = (submission.input as { candidates: Candidate[] })
+    .candidates;
+
+  const summary: DetectionSummary = {
+    candidatesGenerated: candidates.length,
+    inserted: 0,
+    skippedBelowThreshold: 0,
+    insertedCardIds: [],
+    errors: [],
+  };
+
+  // 既存タグ全件 → name -> id マップ
+  const { data: allTags } = await sb.from("tags").select("id, name");
+  const tagIdByName = new Map(
+    (allTags ?? []).map((t) => [t.name, t.id as string]),
+  );
+
+  for (const c of candidates) {
+    const score = computeSignificance(c.scores);
+    if (score < SIGNIFICANCE_THRESHOLD) {
+      summary.skippedBelowThreshold += 1;
+      continue;
+    }
+
+    const { data: card, error } = await sb
+      .from("cards")
+      .insert({
+        title: c.title,
+        summary: c.summary,
+        why_important: c.why_important,
+        source_urls: c.source_urls,
+        scope: c.scope,
+        keywords: c.keywords ?? [],
+        related_articles: c.related_articles ?? [],
+        significance_score: score,
+        published_at: c.published_at ?? new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (error || !card) {
+      summary.errors.push(error?.message ?? "insert returned no row");
+      continue;
+    }
+
+    if (c.tags?.length) {
+      const cardTagRows = c.tags
+        .map((name) => tagIdByName.get(name))
+        .filter((id): id is string => Boolean(id))
+        .map((tag_id) => ({ card_id: card.id, tag_id }));
+      if (cardTagRows.length > 0) {
+        await sb.from("card_tags").insert(cardTagRows);
+      }
+    }
+
+    summary.inserted += 1;
+    summary.insertedCardIds.push(card.id);
+  }
+
+  return summary;
+}

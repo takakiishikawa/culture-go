@@ -10,20 +10,32 @@ const NameSchema = z
   .min(1, "タグ名を入力してください")
   .max(30, "30文字以内で入力してください");
 
+export type ActionResult = { ok: true } | { ok: false; error: string };
+
 async function requireAuthedClient() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("unauthenticated");
-  return supabase;
+  if (!user) return { ok: false as const, error: "ログインが必要です" };
+  return { ok: true as const, supabase };
 }
 
-export async function createTag(rawName: string) {
-  const name = NameSchema.parse(rawName);
-  const supabase = await requireAuthedClient();
+function parseDbError(error: { code?: string; message: string }): string {
+  if (error.code === "23505") return "同じ名前のタグが既にあります";
+  if (error.code === "42501") return "DB の権限が不足しています（GRANT を確認）";
+  return error.message;
+}
 
-  const { data: maxRow } = await supabase
+export async function createTag(rawName: string): Promise<ActionResult> {
+  const parsed = NameSchema.safeParse(rawName);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const name = parsed.data;
+
+  const auth = await requireAuthedClient();
+  if (!auth.ok) return auth;
+
+  const { data: maxRow } = await auth.supabase
     .from("tags")
     .select("display_order")
     .order("display_order", { ascending: false })
@@ -32,48 +44,56 @@ export async function createTag(rawName: string) {
 
   const nextOrder = (maxRow?.display_order ?? 0) + 10;
 
-  const { error } = await supabase
+  const { error } = await auth.supabase
     .from("tags")
     .insert({ name, display_order: nextOrder });
 
-  if (error) {
-    if (error.code === "23505") throw new Error("同じ名前のタグが既にあります");
-    throw new Error(error.message);
-  }
+  if (error) return { ok: false, error: parseDbError(error) };
 
   revalidatePath("/tags");
+  return { ok: true };
 }
 
-export async function renameTag(id: string, rawName: string) {
-  const name = NameSchema.parse(rawName);
-  const supabase = await requireAuthedClient();
+export async function renameTag(
+  id: string,
+  rawName: string,
+): Promise<ActionResult> {
+  const parsed = NameSchema.safeParse(rawName);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const name = parsed.data;
 
-  const { error } = await supabase
+  const auth = await requireAuthedClient();
+  if (!auth.ok) return auth;
+
+  const { error } = await auth.supabase
     .from("tags")
     .update({ name, updated_at: new Date().toISOString() })
     .eq("id", id);
 
-  if (error) {
-    if (error.code === "23505") throw new Error("同じ名前のタグが既にあります");
-    throw new Error(error.message);
-  }
+  if (error) return { ok: false, error: parseDbError(error) };
 
   revalidatePath("/tags");
+  return { ok: true };
 }
 
-export async function deleteTag(id: string) {
-  const supabase = await requireAuthedClient();
-  const { error } = await supabase.from("tags").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+export async function deleteTag(id: string): Promise<ActionResult> {
+  const auth = await requireAuthedClient();
+  if (!auth.ok) return auth;
+
+  const { error } = await auth.supabase.from("tags").delete().eq("id", id);
+  if (error) return { ok: false, error: parseDbError(error) };
+
   revalidatePath("/tags");
+  return { ok: true };
 }
 
-export async function reorderTags(orderedIds: string[]) {
-  const supabase = await requireAuthedClient();
+export async function reorderTags(orderedIds: string[]): Promise<ActionResult> {
+  const auth = await requireAuthedClient();
+  if (!auth.ok) return auth;
 
   const results = await Promise.all(
     orderedIds.map((id, index) =>
-      supabase
+      auth.supabase
         .from("tags")
         .update({ display_order: (index + 1) * 10 })
         .eq("id", id),
@@ -81,7 +101,8 @@ export async function reorderTags(orderedIds: string[]) {
   );
 
   const failure = results.find((r) => r.error);
-  if (failure?.error) throw new Error(failure.error.message);
+  if (failure?.error) return { ok: false, error: parseDbError(failure.error) };
 
   revalidatePath("/tags");
+  return { ok: true };
 }

@@ -18,7 +18,14 @@ import {
   GO_APPS,
   UserMenu,
 } from "@takaki/go-design-system";
-import { Compass, Home, Tags as TagsIcon, Sun, Moon } from "lucide-react";
+import {
+  Compass,
+  Home,
+  Lightbulb,
+  Moon,
+  Sun,
+  Tags as TagsIcon,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const APPS = [
@@ -34,6 +41,7 @@ const APPS = [
 const navItems = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/tags", label: "タグ管理", icon: TagsIcon },
+  { href: "/concept", label: "コンセプト", icon: Lightbulb },
 ];
 
 function isActive(href: string, pathname: string) {

@@ -9,17 +9,21 @@ import {
   InlineEdit,
   Input,
   SortableItem,
+  Tag as TagChip,
+  TagGroup,
   toast,
 } from "@takaki/go-design-system";
-import { Tag as TagIcon, Trash2 } from "lucide-react";
-import { useState, useTransition, type FormEvent } from "react";
+import { Plus, Tag as TagIcon, Trash2 } from "lucide-react";
+import { useMemo, useState, useTransition, type FormEvent } from "react";
 import {
   createTag,
   deleteTag,
   renameTag,
   reorderTags,
+  type ActionResult,
 } from "./actions";
 import type { Tag } from "@/lib/supabase/db";
+import { pickRecommendedTags } from "@/lib/tags/suggestions";
 
 function validateName(name: string): string | undefined {
   const trimmed = name.trim();
@@ -33,14 +37,23 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
   const [draft, setDraft] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  function runAction(fn: () => Promise<void>, errorPrefix: string) {
+  const recommendations = useMemo(
+    () => pickRecommendedTags(tags.map((t) => t.name), 15),
+    [tags],
+  );
+
+  function runAction(
+    fn: () => Promise<ActionResult>,
+    errorPrefix: string,
+    onSuccess?: () => void,
+  ) {
     startTransition(async () => {
-      try {
-        await fn();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "失敗しました";
-        toast.error(`${errorPrefix}: ${message}`);
+      const result = await fn();
+      if (!result.ok) {
+        toast.error(`${errorPrefix}: ${result.error}`);
+        return;
       }
+      onSuccess?.();
     });
   }
 
@@ -52,11 +65,22 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
       toast.error(validation);
       return;
     }
-    runAction(async () => {
-      await createTag(name);
-      setDraft("");
-      toast.success("タグを追加しました");
-    }, "追加に失敗");
+    runAction(
+      () => createTag(name),
+      "追加に失敗",
+      () => {
+        setDraft("");
+        toast.success("タグを追加しました");
+      },
+    );
+  }
+
+  function handleAddRecommended(name: string) {
+    runAction(
+      () => createTag(name),
+      "追加に失敗",
+      () => toast.success(`「${name}」を追加しました`),
+    );
   }
 
   function handleRename(id: string, nextName: string) {
@@ -65,20 +89,16 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
     setTags((prev) =>
       prev.map((t) => (t.id === id ? { ...t, name: nextName.trim() } : t)),
     );
-    runAction(async () => {
-      await renameTag(id, nextName);
-    }, "名前変更に失敗");
+    runAction(() => renameTag(id, nextName), "名前変更に失敗");
   }
 
   function handleDelete(id: string) {
-    const snapshot = tags;
     setTags((prev) => prev.filter((t) => t.id !== id));
-    runAction(async () => {
-      await deleteTag(id);
-      toast.success("タグを削除しました");
-    }, "削除に失敗");
-    // optimistic restore on failure handled via revalidate from server
-    void snapshot;
+    runAction(
+      () => deleteTag(id),
+      "削除に失敗",
+      () => toast.success("タグを削除しました"),
+    );
   }
 
   function handleReorder(orderedIds: string[]) {
@@ -87,9 +107,7 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
       .map((id) => tagMap.get(id))
       .filter((t): t is Tag => Boolean(t));
     setTags(reordered);
-    runAction(async () => {
-      await reorderTags(orderedIds);
-    }, "並び替えに失敗");
+    runAction(() => reorderTags(orderedIds), "並び替えに失敗");
   }
 
   return (
@@ -108,6 +126,29 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
         </Button>
       </form>
 
+      {recommendations.length > 0 && (
+        <div className="space-y-3">
+          <p className="cg-eyebrow">推奨</p>
+          <TagGroup wrap>
+            {recommendations.map((name) => (
+              <button
+                key={name}
+                type="button"
+                disabled={isPending}
+                onClick={() => handleAddRecommended(name)}
+                className="group cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={`${name} を追加`}
+              >
+                <TagChip className="gap-1 transition-colors group-hover:border-[var(--cg-border)] group-hover:bg-[var(--cg-surface-2)]">
+                  <Plus className="h-3 w-3 opacity-60" />
+                  {name}
+                </TagChip>
+              </button>
+            ))}
+          </TagGroup>
+        </div>
+      )}
+
       {tags.length === 0 ? (
         <EmptyState
           icon={<TagIcon size={28} />}
@@ -115,10 +156,7 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
           description="興味のあるドメインを 1 語ずつ加えて、検出範囲を伝えましょう。"
         />
       ) : (
-        <DndProvider
-          items={tags.map((t) => t.id)}
-          onReorder={handleReorder}
-        >
+        <DndProvider items={tags.map((t) => t.id)} onReorder={handleReorder}>
           <ul className="space-y-2">
             {tags.map((tag) => (
               <SortableItem
