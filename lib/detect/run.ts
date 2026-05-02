@@ -1,11 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  SCORING_DIMENSIONS,
   SIGNIFICANCE_THRESHOLD,
   computeSignificance,
-  type DimensionScores,
-} from "./scoring";
+  loadDimensions,
+  type ScoringDimension,
+} from "./dimensions";
 
 interface Candidate {
   title: string;
@@ -16,7 +16,7 @@ interface Candidate {
   keywords?: string[];
   tags?: string[];
   related_articles?: { title: string; url: string }[];
-  scores: DimensionScores;
+  scores: Record<string, number>; // dim_1, dim_2, ...
   published_at?: string;
 }
 
@@ -37,27 +37,31 @@ export async function runDetection(
   const anthropic = new Anthropic();
   const sb = createAdminClient();
 
-  const { data: tagRows } = await sb
-    .from("tags")
-    .select("name")
-    .order("display_order", { ascending: true });
+  const [{ data: tagRows }, dimensions] = await Promise.all([
+    sb.from("tags").select("name").order("display_order", { ascending: true }),
+    loadDimensions(),
+  ]);
   const tagNames = (tagRows ?? []).map((t) => t.name);
 
-  const dimensionDescriptions = SCORING_DIMENSIONS.map(
-    (d) =>
-      `- ${d.key} (label: ${d.label}, weight: ${d.weight}): ${d.description}\n  rubric: ${d.rubric}`,
-  ).join("\n");
+  const dimensionDescriptions = dimensions
+    .map(
+      (d, i) =>
+        `- dim_${i + 1} (label: ${d.label}, weight: ${d.weight}): ${d.description}\n  rubric: ${d.rubric}`,
+    )
+    .join("\n");
 
   const systemPrompt = `あなたは "culturego" という週刊スローメディアの編集者です。世界の進む方向を変えうる「大きな出来事」だけを選び抜きます。瑣末なニュースは絶対に含めない。
 
-スコアは以下の 5 軸を 0–10 で採点し、重み付き和で 0–10 のスコアを出します:
+スコアは以下の ${dimensions.length} 軸を 0–10 で採点し、重み付き和で 0–10 のスコアを出します:
 ${dimensionDescriptions}
 
 しきい値: 重み付き総合スコアが ${SIGNIFICANCE_THRESHOLD} 未満のものは publish せず、それ以上のものだけを返してください。ただしリストには候補として全て含めて構いません（こちらでフィルタします）。
 
+特に "構造的変化"（力学が変わるか）の評価を厳格に行うこと。これがこのメディアの核です。
+
 ユーザーの興味タグ（このタグに合致するものを優先するが、これらに限らず本当に大きい出来事は含める）: ${tagNames.join("、") || "（未設定）"}`;
 
-  const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる「大きな出来事」を最大 8 件まで挙げ、各候補に 5 軸スコアを付けて submit_candidates ツールで提出してください。
+  const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる「大きな出来事」を最大 8 件まで挙げ、各候補に ${dimensions.length} 軸スコアを付けて submit_candidates ツールで提出してください。
 
 各候補について:
 - title: 一文で本質を捉える（30 字以内）
@@ -67,10 +71,31 @@ ${dimensionDescriptions}
 - scope: world / japan / vietnam
 - keywords: 5–10 の検索可能キーワード
 - tags: ユーザータグから合致するもの（無くてよい）
-- scores: 5 軸を 0–10 で
+- scores: ${dimensions.map((_, i) => `dim_${i + 1}`).join(", ")} を 0–10 で
 - published_at: 出来事の発生日 (ISO8601)`;
 
   type ToolDef = Anthropic.Messages.Tool;
+
+  const scoresProperties: Record<
+    string,
+    {
+      type: "number";
+      minimum: number;
+      maximum: number;
+      description: string;
+    }
+  > = {};
+  const scoresRequired: string[] = [];
+  dimensions.forEach((d, i) => {
+    const key = `dim_${i + 1}`;
+    scoresProperties[key] = {
+      type: "number",
+      minimum: 0,
+      maximum: 10,
+      description: `${d.label}: ${d.description} (採点基準: ${d.rubric})`,
+    };
+    scoresRequired.push(key);
+  });
 
   const tools: ToolDef[] = [
     {
@@ -110,18 +135,8 @@ ${dimensionDescriptions}
                 },
                 scores: {
                   type: "object",
-                  properties: Object.fromEntries(
-                    SCORING_DIMENSIONS.map((d) => [
-                      d.key,
-                      {
-                        type: "number",
-                        minimum: 0,
-                        maximum: 10,
-                        description: d.description,
-                      },
-                    ]),
-                  ),
-                  required: SCORING_DIMENSIONS.map((d) => d.key),
+                  properties: scoresProperties,
+                  required: scoresRequired,
                 },
                 published_at: { type: "string", format: "date-time" },
               },
@@ -141,7 +156,6 @@ ${dimensionDescriptions}
     },
   ];
 
-  // web 検索ツール（Anthropic 提供のサーバーツール）。SDK 型に未掲載のため拡張で渡す。
   const allTools = [
     ...tools,
     {
@@ -179,14 +193,13 @@ ${dimensionDescriptions}
     errors: [],
   };
 
-  // 既存タグ全件 → name -> id マップ
   const { data: allTags } = await sb.from("tags").select("id, name");
   const tagIdByName = new Map(
     (allTags ?? []).map((t) => [t.name, t.id as string]),
   );
 
   for (const c of candidates) {
-    const score = computeSignificance(c.scores);
+    const score = computeSignificance(dimensions, c.scores);
     if (score < SIGNIFICANCE_THRESHOLD) {
       summary.skippedBelowThreshold += 1;
       continue;
@@ -229,3 +242,5 @@ ${dimensionDescriptions}
 
   return summary;
 }
+
+export type { ScoringDimension };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Sidebar,
@@ -22,6 +22,8 @@ import {
   Home,
   Lightbulb,
   Moon,
+  Settings,
+  SlidersHorizontal,
   Sun,
   Tags as TagsIcon,
 } from "lucide-react";
@@ -30,7 +32,6 @@ import { createClient } from "@/lib/supabase/client";
 const navItems = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/tags", label: "タグ管理", icon: TagsIcon },
-  { href: "/concept", label: "コンセプト", icon: Lightbulb },
 ];
 
 function isActive(href: string, pathname: string) {
@@ -40,6 +41,7 @@ function isActive(href: string, pathname: string) {
 
 export function CultureGoSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [displayName, setDisplayName] = useState("");
@@ -109,6 +111,24 @@ export function CultureGoSidebar() {
           email={email}
           avatarUrl={avatarUrl}
           items={[
+            {
+              title: "コンセプト",
+              icon: Lightbulb,
+              onSelect: () => router.push("/concept"),
+              isActive: pathname.startsWith("/concept"),
+            },
+            {
+              title: "スコアリング",
+              icon: SlidersHorizontal,
+              onSelect: () => router.push("/scoring"),
+              isActive: pathname.startsWith("/scoring"),
+            },
+            {
+              title: "設定",
+              icon: Settings,
+              onSelect: () => router.push("/settings"),
+              isActive: pathname.startsWith("/settings"),
+            },
             {
               title: isDark ? "ダーク" : "ライト",
               icon: isDark ? Moon : Sun,
