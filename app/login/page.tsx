@@ -7,11 +7,11 @@ import { LoginPage } from "@takaki/go-design-system";
 import { Compass } from "lucide-react";
 
 function LoginContent() {
+  const supabase = createClient();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
   async function handleGoogleSignIn() {
-    const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -20,14 +20,14 @@ function LoginContent() {
 
   return (
     <LoginPage
-      productName="culturego"
+      productName="CultureGo"
       productLogo={
         <Compass
           size={24}
           style={{ color: "var(--color-primary)" }}
         />
       }
-      tagline="世界の進む方向を読む、週次の点火装置"
+      tagline="週刊のスローメディア"
       onGoogleSignIn={handleGoogleSignIn}
     />
   );
