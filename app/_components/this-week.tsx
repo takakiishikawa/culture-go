@@ -57,17 +57,20 @@ function buildClaudePromptUrl(card: ThisWeekCardData): string {
   return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
 }
 
+const KEYWORD_LIMIT = 3;
+
 function KeywordRow({ items, color = "#999" }: { items: string[]; color?: string }) {
   if (items.length === 0) return null;
+  const shown = items.slice(0, KEYWORD_LIMIT);
   return (
     <div
       className="flex flex-wrap items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.24em]"
       style={{ color }}
     >
-      {items.map((k, i) => (
+      {shown.map((k, i) => (
         <span key={k} className="inline-flex items-center gap-3">
           <span>{k}</span>
-          {i < items.length - 1 && <span className="opacity-40">·</span>}
+          {i < shown.length - 1 && <span className="opacity-40">·</span>}
         </span>
       ))}
     </div>
