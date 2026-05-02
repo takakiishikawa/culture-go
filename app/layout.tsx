@@ -22,7 +22,7 @@ const notoSans = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: "culturego — 世界の進む方向を読む",
   description:
-    "世界・日本・ベトナムで起きる「大きな出来事」を週1で検出する、深掘りのトリガー。",
+    "世界・日本・ベトナムで進む構造シフトを週1で集めるスローメディア。",
 };
 
 export default async function RootLayout({

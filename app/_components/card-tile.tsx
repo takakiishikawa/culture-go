@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ArrowUpRight, ExternalLink, Sparkles } from "lucide-react";
+import { ArrowUpRight, Sparkles } from "lucide-react";
 import { markCardRead } from "@/app/_actions/cards";
 
 const SCOPE_LABEL: Record<"world" | "japan" | "vietnam", string> = {
@@ -27,7 +27,7 @@ export interface CardForTile {
 
 function buildClaudePromptUrl(card: CardForTile): string {
   const prompt = [
-    "以下のニュースについて、世界の進む方向の文脈で深掘りしたい。",
+    "以下の構造シフトについて、世界の進む方向の文脈で深掘りしたい。",
     "",
     `タイトル: ${card.title}`,
     "",
@@ -38,20 +38,11 @@ function buildClaudePromptUrl(card: CardForTile): string {
     `主要ソース: ${card.source_urls[0] ?? ""}`,
     "",
     "観点:",
-    "- なぜこの出来事が起きたか（構造的な背景）",
+    "- なぜこの動きが起きたか（構造的な背景）",
     "- 中長期で何が変わるか",
     "- 私たちが取るべき視点",
   ].join("\n");
   return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function hostnameOf(url: string): string {
@@ -60,6 +51,21 @@ function hostnameOf(url: string): string {
   } catch {
     return url;
   }
+}
+
+function ScopeMark({ scope }: { scope: CardForTile["scope"] }) {
+  const letter =
+    scope === "world" ? "W" : scope === "japan" ? "J" : "V";
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
+      <span
+        className="cg-display text-white/15 leading-none"
+        style={{ fontSize: "11rem", letterSpacing: "-0.06em" }}
+      >
+        {letter}
+      </span>
+    </div>
+  );
 }
 
 export function CardTile({ card }: { card: CardForTile }) {
@@ -72,51 +78,65 @@ export function CardTile({ card }: { card: CardForTile }) {
   }
 
   const claudeUrl = buildClaudePromptUrl(card);
+  const primary = card.source_urls[0];
 
   return (
     <article
       className={
-        "border-t border-[var(--cg-border-subtle)] py-12 transition-opacity " +
+        "group transition-opacity duration-300 " +
         (isRead ? "opacity-50" : "opacity-100")
       }
     >
-      {card.hero_image_url && (
-        <div className="relative mb-8 aspect-[16/8] w-full overflow-hidden rounded-md bg-[var(--cg-surface-2)]">
-          <Image
-            src={card.hero_image_url}
-            alt=""
-            fill
-            sizes="(max-width: 768px) 100vw, 720px"
-            className="object-cover"
-          />
+      <a
+        href={primary}
+        target="_blank"
+        rel="noreferrer"
+        onClick={recordRead}
+        className="block"
+      >
+        <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--cg-surface-2)]">
+          {card.hero_image_url ? (
+            <Image
+              src={card.hero_image_url}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 480px"
+              className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <ScopeMark scope={card.scope} />
+          )}
+
+          {/* overlay strip: scope (left), score (right) */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
+            <span className="rounded-sm bg-white/95 px-2 py-1 text-[10px] font-medium tracking-[0.18em] text-[var(--cg-text)]">
+              {SCOPE_LABEL[card.scope]}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-sm bg-white/95 px-2 py-1 text-[11px] tabular-nums text-[var(--cg-text)]">
+              <Sparkles className="h-3 w-3" />
+              {card.significance_score.toFixed(1)}
+            </span>
+          </div>
         </div>
-      )}
+      </a>
 
-      <div className="flex items-center gap-3">
-        <span className="cg-eyebrow">{SCOPE_LABEL[card.scope]}</span>
-        <span className="cg-eyebrow text-[var(--cg-text-subtle)]">
-          {formatDate(card.published_at)}
-        </span>
-        <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-[var(--cg-border-subtle)] px-2.5 py-0.5 text-xs tabular-nums text-[var(--cg-text-secondary)]">
-          <Sparkles className="h-3 w-3" />
-          {card.significance_score.toFixed(1)}
-        </span>
-      </div>
-
-      <h2 className="cg-display mt-3 text-2xl text-[var(--cg-text)]">
-        {card.title}
+      <h2 className="cg-headline mt-4 text-xl text-[var(--cg-text)]">
+        <a
+          href={primary}
+          target="_blank"
+          rel="noreferrer"
+          onClick={recordRead}
+          className="underline-offset-4 group-hover:underline"
+        >
+          {card.title}
+        </a>
       </h2>
 
-      <p className="cg-body mt-4 text-[var(--cg-text)]">{card.summary}</p>
+      <p className="cg-body mt-2 line-clamp-3 text-sm text-[var(--cg-text-secondary)]">
+        {card.summary}
+      </p>
 
-      <section className="mt-6 border-l-2 border-[var(--cg-border)] pl-4">
-        <p className="cg-eyebrow mb-2">why it matters</p>
-        <p className="cg-body text-[var(--cg-text-secondary)]">
-          {card.why_important}
-        </p>
-      </section>
-
-      <footer className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+      <div className="mt-3 flex items-center gap-4 text-xs">
         <a
           href={claudeUrl}
           target="_blank"
@@ -125,22 +145,14 @@ export function CardTile({ card }: { card: CardForTile }) {
           className="inline-flex items-center gap-1 text-[var(--cg-text)] underline-offset-4 hover:underline"
         >
           Claude で深掘り
-          <ArrowUpRight className="h-3.5 w-3.5" />
+          <ArrowUpRight className="h-3 w-3" />
         </a>
-        {card.source_urls.slice(0, 3).map((url) => (
-          <a
-            key={url}
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={recordRead}
-            className="inline-flex items-center gap-1 text-[var(--cg-text-secondary)] underline-offset-4 hover:underline hover:text-[var(--cg-text)]"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            {hostnameOf(url)}
-          </a>
-        ))}
-      </footer>
+        {primary && (
+          <span className="text-[var(--cg-text-subtle)]">
+            {hostnameOf(primary)}
+          </span>
+        )}
+      </div>
     </article>
   );
 }

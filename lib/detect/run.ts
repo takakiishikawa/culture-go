@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { CulturegoClient } from "@/lib/supabase/types";
+import { fetchOgImage } from "./extract-image";
 import {
   SIGNIFICANCE_THRESHOLD,
   computeSignificance,
@@ -79,7 +80,7 @@ export async function runDetection(
     )
     .join("\n");
 
-  const systemPrompt = `あなたは "culturego" という週刊スローメディアの編集者です。世界の進む方向を変えうる「大きな出来事」だけを選び抜きます。瑣末なニュースは絶対に含めない。
+  const systemPrompt = `あなたは "culturego" という週刊スローメディアの編集者です。世界の進む方向を変えうる本質的な構造シフトだけを選び抜きます。瑣末なニュースは絶対に含めない。
 
 スコアは以下の ${dimensions.length} 軸を 0–10 で採点し、重み付き和で 0–10 のスコアを出します:
 ${dimensionDescriptions}
@@ -90,7 +91,7 @@ ${dimensionDescriptions}
 
 ユーザーの興味タグ（このタグに合致するものを優先するが、これらに限らず本当に大きい出来事は含める）: ${tagNames.join("、") || "（未設定）"}`;
 
-  const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる「大きな出来事」を最大 ${cfg.maxCandidates} 件まで挙げ、各候補に ${dimensions.length} 軸スコアを付けて submit_candidates ツールで提出してください。
+  const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる構造シフトを最大 ${cfg.maxCandidates} 件まで挙げ、各候補に ${dimensions.length} 軸スコアを付けて submit_candidates ツールで提出してください。
 
 各候補について:
 - title: 一文で本質を捉える（30 字以内）
@@ -227,7 +228,15 @@ ${dimensionDescriptions}
     (allTags ?? []).map((t) => [t.name, t.id as string]),
   );
 
-  for (const c of candidates) {
+  // og:image を並列で取得（候補ごと、5s タイムアウト）
+  const heroImages = await Promise.all(
+    candidates.map((c) =>
+      c.source_urls?.[0] ? fetchOgImage(c.source_urls[0]) : Promise.resolve(null),
+    ),
+  );
+
+  for (let i = 0; i < candidates.length; i++) {
+    const c = candidates[i];
     const score = computeSignificance(dimensions, c.scores);
     if (score < SIGNIFICANCE_THRESHOLD) {
       summary.skippedBelowThreshold += 1;
@@ -241,6 +250,7 @@ ${dimensionDescriptions}
         summary: c.summary,
         why_important: c.why_important,
         source_urls: c.source_urls,
+        hero_image_url: heroImages[i],
         scope: c.scope,
         keywords: c.keywords ?? [],
         related_articles: c.related_articles ?? [],

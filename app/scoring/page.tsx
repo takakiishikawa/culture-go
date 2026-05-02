@@ -44,7 +44,7 @@ export default async function ScoringRoute() {
       <header className="space-y-1.5">
         <p className="cg-eyebrow">scoring</p>
         <h1 className="cg-display text-2xl text-[var(--cg-text)]">
-          「大きな出来事」のスコアリング
+          構造シフトのスコアリング
         </h1>
         <p className="text-sm text-[var(--cg-text-secondary)]">
           重み付き総合スコア = Σ(各軸 × 重み)。{SIGNIFICANCE_THRESHOLD}{" "}

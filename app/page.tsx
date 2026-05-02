@@ -19,6 +19,15 @@ interface RawCard {
   card_metadata: { is_read: boolean | null }[] | null;
 }
 
+function formatWeekLabel(latestIso?: string): string {
+  const d = latestIso ? new Date(latestIso) : new Date();
+  return d.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default async function HomePage() {
   const supabase = await createClient();
 
@@ -36,7 +45,7 @@ export default async function HomePage() {
       <main className="mx-auto max-w-2xl px-6 py-16">
         <p className="cg-eyebrow mb-4">error</p>
         <p className="cg-body text-[var(--cg-text-secondary)]">
-          カードの読み込みに失敗しました: {error.message}
+          読み込みに失敗しました: {error.message}
         </p>
       </main>
     );
@@ -49,8 +58,8 @@ export default async function HomePage() {
       <main className="mx-auto max-w-2xl px-6 py-24">
         <EmptyState
           icon={<Compass size={28} />}
-          title="まだ今週のカードはありません"
-          description="土曜深夜に検出が走るのを待つか、設定ページから手動で実行できます。"
+          title="今週はまだ届いていません"
+          description="土曜深夜に検出が走る。設定から手動でも回せる。"
         />
       </main>
     );
@@ -71,15 +80,15 @@ export default async function HomePage() {
   }));
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <header className="mb-2">
+    <main className="mx-auto max-w-5xl px-6 py-12">
+      <header className="mb-12 flex items-baseline justify-between">
         <p className="cg-eyebrow">this week</p>
-        <h1 className="cg-display mt-2 text-3xl text-[var(--cg-text)]">
-          {cards.length} 件の大きな出来事
-        </h1>
+        <p className="cg-eyebrow text-[var(--cg-text-subtle)]">
+          {formatWeekLabel(tiles[0]?.published_at)}
+        </p>
       </header>
 
-      <ol>
+      <ol className="grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2">
         {tiles.map((c) => (
           <li key={c.id}>
             <CardTile card={c} />
