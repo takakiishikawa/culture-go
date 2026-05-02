@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { Tag } from "@/lib/supabase/db";
 
 const NameSchema = z
   .string()
@@ -11,6 +12,9 @@ const NameSchema = z
   .max(30, "30文字以内で入力してください");
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+export type CreateTagResult =
+  | { ok: true; tag: Tag }
+  | { ok: false; error: string };
 
 async function requireAuthedClient() {
   const supabase = await createClient();
@@ -27,7 +31,7 @@ function parseDbError(error: { code?: string; message: string }): string {
   return error.message;
 }
 
-export async function createTag(rawName: string): Promise<ActionResult> {
+export async function createTag(rawName: string): Promise<CreateTagResult> {
   const parsed = NameSchema.safeParse(rawName);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const name = parsed.data;
@@ -44,14 +48,21 @@ export async function createTag(rawName: string): Promise<ActionResult> {
 
   const nextOrder = (maxRow?.display_order ?? 0) + 10;
 
-  const { error } = await auth.supabase
+  const { data: created, error } = await auth.supabase
     .from("tags")
-    .insert({ name, display_order: nextOrder });
+    .insert({ name, display_order: nextOrder })
+    .select("id, name, display_order, created_at, updated_at")
+    .single();
 
-  if (error) return { ok: false, error: parseDbError(error) };
+  if (error || !created) {
+    return {
+      ok: false,
+      error: parseDbError(error ?? { message: "insert returned no row" }),
+    };
+  }
 
   revalidatePath("/tags");
-  return { ok: true };
+  return { ok: true, tag: created as Tag };
 }
 
 export async function renameTag(

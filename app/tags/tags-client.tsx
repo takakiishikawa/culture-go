@@ -20,7 +20,6 @@ import {
   deleteTag,
   renameTag,
   reorderTags,
-  type ActionResult,
 } from "./actions";
 import type { Tag } from "@/lib/supabase/db";
 import { pickRecommendedTags } from "@/lib/tags/suggestions";
@@ -38,76 +37,82 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
   const [isPending, startTransition] = useTransition();
 
   const recommendations = useMemo(
-    () => pickRecommendedTags(tags.map((t) => t.name), 15),
+    () => pickRecommendedTags(tags.map((t) => t.name), 25),
     [tags],
   );
 
-  function runAction(
-    fn: () => Promise<ActionResult>,
-    errorPrefix: string,
-    onSuccess?: () => void,
-  ) {
+  function add(name: string) {
+    const trimmed = name.trim();
+    const validation = validateName(trimmed);
+    if (validation) {
+      toast.error(validation);
+      return;
+    }
     startTransition(async () => {
-      const result = await fn();
+      const result = await createTag(trimmed);
       if (!result.ok) {
-        toast.error(`${errorPrefix}: ${result.error}`);
+        toast.error(`追加に失敗: ${result.error}`);
         return;
       }
-      onSuccess?.();
+      setTags((prev) => [...prev, result.tag]);
+      toast.success(`「${result.tag.name}」を追加しました`);
     });
   }
 
   function handleAdd(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const name = draft.trim();
-    const validation = validateName(name);
-    if (validation) {
-      toast.error(validation);
-      return;
-    }
-    runAction(
-      () => createTag(name),
-      "追加に失敗",
-      () => {
-        setDraft("");
-        toast.success("タグを追加しました");
-      },
-    );
-  }
-
-  function handleAddRecommended(name: string) {
-    runAction(
-      () => createTag(name),
-      "追加に失敗",
-      () => toast.success(`「${name}」を追加しました`),
-    );
+    add(draft);
+    setDraft("");
   }
 
   function handleRename(id: string, nextName: string) {
+    const trimmed = nextName.trim();
     const previous = tags.find((t) => t.id === id);
-    if (!previous || previous.name === nextName.trim()) return;
+    if (!previous || previous.name === trimmed) return;
+
     setTags((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, name: nextName.trim() } : t)),
+      prev.map((t) => (t.id === id ? { ...t, name: trimmed } : t)),
     );
-    runAction(() => renameTag(id, nextName), "名前変更に失敗");
+    startTransition(async () => {
+      const result = await renameTag(id, trimmed);
+      if (!result.ok) {
+        toast.error(`名前変更に失敗: ${result.error}`);
+        // ロールバック
+        setTags((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, name: previous.name } : t)),
+        );
+      }
+    });
   }
 
   function handleDelete(id: string) {
+    const snapshot = tags;
     setTags((prev) => prev.filter((t) => t.id !== id));
-    runAction(
-      () => deleteTag(id),
-      "削除に失敗",
-      () => toast.success("タグを削除しました"),
-    );
+    startTransition(async () => {
+      const result = await deleteTag(id);
+      if (!result.ok) {
+        toast.error(`削除に失敗: ${result.error}`);
+        setTags(snapshot);
+        return;
+      }
+      toast.success("タグを削除しました");
+    });
   }
 
   function handleReorder(orderedIds: string[]) {
+    const snapshot = tags;
     const tagMap = new Map(tags.map((t) => [t.id, t]));
     const reordered = orderedIds
       .map((id) => tagMap.get(id))
       .filter((t): t is Tag => Boolean(t));
     setTags(reordered);
-    runAction(() => reorderTags(orderedIds), "並び替えに失敗");
+    startTransition(async () => {
+      const result = await reorderTags(orderedIds);
+      if (!result.ok) {
+        toast.error(`並び替えに失敗: ${result.error}`);
+        setTags(snapshot);
+      }
+    });
   }
 
   return (
@@ -128,14 +133,14 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
 
       {recommendations.length > 0 && (
         <div className="space-y-3">
-          <p className="cg-eyebrow">推奨</p>
+          <p className="cg-eyebrow">候補</p>
           <TagGroup wrap>
             {recommendations.map((name) => (
               <button
                 key={name}
                 type="button"
                 disabled={isPending}
-                onClick={() => handleAddRecommended(name)}
+                onClick={() => add(name)}
                 className="group cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label={`${name} を追加`}
               >
