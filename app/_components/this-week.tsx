@@ -132,17 +132,20 @@ function CardChrome({
   const overlayPad = big ? "24px 28px" : "14px 16px";
   const titleColor = isRead ? "rgba(255,255,255,0.6)" : "#FFF";
   const imgFilter = isRead ? "saturate(0.5)" : "none";
+  const [imgError, setImgError] = useState(false);
+  const showImg = card.hero_image_url && !imgError;
 
   return (
     <>
       <div className="relative mb-[18px]">
-        {card.hero_image_url ? (
+        {showImg ? (
           // 素の <img>: ホスト多様性 / リダイレクトで Vercel optimizer が取りこぼすケースを避ける
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={card.hero_image_url}
+            src={card.hero_image_url ?? ""}
             alt=""
             loading="lazy"
+            onError={() => setImgError(true)}
             className="w-full object-cover"
             style={{ height: imgHeight, filter: imgFilter }}
           />

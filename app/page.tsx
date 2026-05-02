@@ -128,16 +128,23 @@ export default async function HomePage() {
     );
   }
 
+  const THIS_WEEK_LIMIT = 3;
   const latestWeekStart = startOfWeekUTC(new Date(cards[0].published_at));
-  const thisWeekCards: RawCard[] = [];
-  const pastCards: RawCard[] = [];
+  const inLatestWeek: RawCard[] = [];
+  const olderCards: RawCard[] = [];
   for (const c of cards) {
     if (new Date(c.published_at).getTime() >= latestWeekStart.getTime()) {
-      thisWeekCards.push(c);
+      inLatestWeek.push(c);
     } else {
-      pastCards.push(c);
+      olderCards.push(c);
     }
   }
+  // 最新週から significance 上位 N 枚だけを「今週」に出す。残りはアーカイブへ降ろす。
+  const sortedLatest = [...inLatestWeek].sort(
+    (a, b) => Number(b.significance_score) - Number(a.significance_score),
+  );
+  const thisWeekCards = sortedLatest.slice(0, THIS_WEEK_LIMIT);
+  const pastCards = [...sortedLatest.slice(THIS_WEEK_LIMIT), ...olderCards];
 
   const pastByWeek = new Map<string, RawCard[]>();
   for (const c of pastCards) {
