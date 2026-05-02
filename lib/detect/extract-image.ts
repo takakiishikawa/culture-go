@@ -12,7 +12,7 @@ const META_PATTERNS = [
 
 export async function fetchOgImage(
   pageUrl: string,
-  timeoutMs = 5000,
+  timeoutMs = 8000,
 ): Promise<string | null> {
   if (!pageUrl) return null;
   try {

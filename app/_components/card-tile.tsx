@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { markCardRead } from "@/app/_actions/cards";
 
@@ -54,13 +53,12 @@ function hostnameOf(url: string): string {
 }
 
 function ScopeMark({ scope }: { scope: CardForTile["scope"] }) {
-  const letter =
-    scope === "world" ? "W" : scope === "japan" ? "J" : "V";
+  const letter = scope === "world" ? "W" : scope === "japan" ? "J" : "V";
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950">
       <span
         className="cg-display text-white/15 leading-none"
-        style={{ fontSize: "11rem", letterSpacing: "-0.06em" }}
+        style={{ fontSize: "9rem", letterSpacing: "-0.06em" }}
       >
         {letter}
       </span>
@@ -70,6 +68,7 @@ function ScopeMark({ scope }: { scope: CardForTile["scope"] }) {
 
 export function CardTile({ card }: { card: CardForTile }) {
   const [isRead, setIsRead] = useState(card.is_read);
+  const [imgError, setImgError] = useState(false);
 
   function recordRead() {
     if (isRead) return;
@@ -79,6 +78,7 @@ export function CardTile({ card }: { card: CardForTile }) {
 
   const claudeUrl = buildClaudePromptUrl(card);
   const primary = card.source_urls[0];
+  const showImage = card.hero_image_url && !imgError;
 
   return (
     <article
@@ -94,47 +94,48 @@ export function CardTile({ card }: { card: CardForTile }) {
         onClick={recordRead}
         className="block"
       >
-        <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--cg-surface-2)]">
-          {card.hero_image_url ? (
-            <Image
-              src={card.hero_image_url}
+        <div className="relative aspect-[3/2] overflow-hidden rounded-md bg-[var(--cg-surface-2)]">
+          {showImage ? (
+            // next/image を経由しない: ホスト多様性 / リダイレクト / Vercel image optimizer の
+            // 取りこぼしで写真が消えるのを防ぐ。素の <img> なら onError も確実に発火する。
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={card.hero_image_url ?? ""}
               alt=""
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 480px"
-              className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              loading="lazy"
+              onError={() => setImgError(true)}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
             />
           ) : (
             <ScopeMark scope={card.scope} />
           )}
 
-          {/* overlay strip: scope (left), score (right) */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
-            <span className="rounded-sm bg-white/95 px-2 py-1 text-[10px] font-medium tracking-[0.18em] text-[var(--cg-text)]">
+          {/* 上下に黒のグラデーションを敷いて、白文字の可読性を担保 */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/55 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+          {/* badges (top) */}
+          <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
+            <span className="text-[10px] font-medium tracking-[0.2em] text-white/90">
               {SCOPE_LABEL[card.scope]}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-sm bg-white/95 px-2 py-1 text-[11px] tabular-nums text-[var(--cg-text)]">
+            <span className="inline-flex items-center gap-1 text-[11px] tabular-nums text-white/90">
               <Sparkles className="h-3 w-3" />
               {card.significance_score.toFixed(1)}
             </span>
           </div>
+
+          {/* title (overlaid) */}
+          <h2
+            className="absolute inset-x-0 bottom-0 p-5 text-white"
+            style={{ textShadow: "0 1px 12px rgba(0,0,0,0.35)" }}
+          >
+            <span className="cg-headline block text-xl leading-snug">
+              {card.title}
+            </span>
+          </h2>
         </div>
       </a>
-
-      <h2 className="cg-headline mt-4 text-xl text-[var(--cg-text)]">
-        <a
-          href={primary}
-          target="_blank"
-          rel="noreferrer"
-          onClick={recordRead}
-          className="underline-offset-4 group-hover:underline"
-        >
-          {card.title}
-        </a>
-      </h2>
-
-      <p className="cg-body mt-2 line-clamp-3 text-sm text-[var(--cg-text-secondary)]">
-        {card.summary}
-      </p>
 
       <div className="mt-3 flex items-center gap-4 text-xs">
         <a
