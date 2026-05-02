@@ -1,0 +1,88 @@
+@import "tailwindcss";
+@source "../node_modules/@takaki/go-design-system/dist";
+@import "@takaki/go-design-system/theme.css";
+
+@variant dark (&:where(.dark, .dark *));
+
+/* ── kyoyogo — ky-* エイリアス（DS トークンへのプロダクト固有名） ── */
+:root {
+  --font-serif: "Noto Serif JP", "EB Garamond", Georgia, serif;
+  --font-sans: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --ky-text: var(--color-text-primary);
+  --ky-text-muted: var(--color-text-subtle);
+  --ky-text-secondary: var(--color-text-secondary);
+  --ky-accent: var(--color-primary);
+  --ky-surface: var(--color-surface);
+  --ky-surface-2: var(--color-surface-subtle);
+  --ky-bg: var(--color-background);
+  --ky-border: var(--color-border-default);
+  --ky-border-subtle: var(--color-border-subtle);
+}
+
+/* ── Editorial typography（ギャラリー型レイアウト用） ── */
+.ky-display {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.ky-headline {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.ky-body-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.7;
+}
+.ky-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+/* ── Card surfaces ── */
+.ky-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--duration-base) var(--easing-default),
+    transform var(--duration-base) var(--easing-default);
+}
+.ky-card:hover {
+  border-color: var(--color-border-default);
+}
+.ky-divider {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: 15px;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-background);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-surface-subtle);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-subtle);
+  }
+}

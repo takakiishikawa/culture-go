@@ -1,0 +1,42 @@
+"use client";
+
+import { createClient } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { LoginPage } from "@takaki/go-design-system";
+import { Compass } from "lucide-react";
+
+function LoginContent() {
+  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+  }
+
+  return (
+    <LoginPage
+      productName="kyoyogo"
+      productLogo={
+        <Compass
+          size={24}
+          style={{ color: "var(--color-primary)" }}
+        />
+      }
+      tagline="世界の進む方向を読む、週次の点火装置"
+      onGoogleSignIn={handleGoogleSignIn}
+    />
+  );
+}
+
+export default function LoginPageRoute() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  );
+}
