@@ -46,6 +46,18 @@
   text-transform: uppercase;
   color: var(--color-text-subtle);
 }
+.cg-num {
+  font-feature-settings: "tnum", "lnum";
+  font-variant-numeric: tabular-nums lining-nums;
+}
+@keyframes cg-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 /* ── Card surfaces ── */
 .cg-card {
