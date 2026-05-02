@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { createAdminClient } from "@/lib/supabase/admin";
+import type { CulturegoClient } from "@/lib/supabase/types";
 import {
   SIGNIFICANCE_THRESHOLD,
   computeSignificance,
@@ -31,15 +31,15 @@ export interface DetectionSummary {
 const MODEL = "claude-sonnet-4-5-20250929";
 
 export async function runDetection(
+  sb: CulturegoClient,
   opts: { lookbackDays?: number } = {},
 ): Promise<DetectionSummary> {
   const lookback = opts.lookbackDays ?? 7;
   const anthropic = new Anthropic();
-  const sb = createAdminClient();
 
   const [{ data: tagRows }, dimensions] = await Promise.all([
     sb.from("tags").select("name").order("display_order", { ascending: true }),
-    loadDimensions(),
+    loadDimensions(sb),
   ]);
   const tagNames = (tagRows ?? []).map((t) => t.name);
 

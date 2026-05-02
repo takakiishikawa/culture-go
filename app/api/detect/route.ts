@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const summary = await runDetection({ lookbackDays });
+    const summary = await runDetection(supabase, { lookbackDays });
     return NextResponse.json({ ok: true, summary });
   } catch (err) {
     const message = err instanceof Error ? err.message : "detection failed";

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import type { CulturegoClient } from "@/lib/supabase/types";
 
 /** 配信される最低スコア（重み付き総合）。これ未満は瑣末ニュースとして除外。 */
 export const SIGNIFICANCE_THRESHOLD = 7.0;
@@ -14,7 +14,7 @@ export interface ScoringDimension {
 
 /**
  * DB の scoring_dimensions が空 / 未作成の場合のフォールバック。
- * 本番ではマイグレーション 0002 を流して DB から読む想定。
+ * 本番ではマイグレーション 0002 を流して DB から読む。
  */
 export const DEFAULT_DIMENSIONS: ScoringDimension[] = [
   {
@@ -45,15 +45,15 @@ export const DEFAULT_DIMENSIONS: ScoringDimension[] = [
   },
 ];
 
-export async function loadDimensions(): Promise<ScoringDimension[]> {
-  const sb = createAdminClient();
+export async function loadDimensions(
+  sb: CulturegoClient,
+): Promise<ScoringDimension[]> {
   const { data, error } = await sb
     .from("scoring_dimensions")
     .select("id, label, description, rubric, weight, display_order")
     .order("display_order", { ascending: true });
 
   if (error) {
-    // テーブル未作成などの致命的エラー時はデフォルトで動く
     console.warn("[dimensions] failed to load, using defaults:", error.message);
     return DEFAULT_DIMENSIONS;
   }

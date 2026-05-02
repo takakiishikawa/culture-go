@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "detect": "tsx scripts/detect-events.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
@@ -37,8 +36,7 @@
   },
   "devDependencies": {
     "eslint": "^10.2.1",
-    "eslint-config-next": "^16.2.4",
-    "tsx": "^4.20.0"
+    "eslint-config-next": "^16.2.4"
   },
   "overrides": {
     "postcss": "^8.5.10"
