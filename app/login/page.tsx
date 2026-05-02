@@ -7,11 +7,11 @@ import { LoginPage } from "@takaki/go-design-system";
 import { Compass } from "lucide-react";
 
 function LoginContent() {
-  const supabase = createClient();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
   async function handleGoogleSignIn() {
+    const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
