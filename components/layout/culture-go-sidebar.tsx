@@ -19,7 +19,6 @@ import {
   UserMenu,
 } from "@takaki/go-design-system";
 import {
-  Compass,
   Home,
   Lightbulb,
   Moon,
@@ -27,16 +26,6 @@ import {
   Tags as TagsIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-
-const APPS = [
-  {
-    name: "CultureGo",
-    url: "https://culture-go.vercel.app",
-    color: "#1F2937",
-    icon: Compass,
-  },
-  ...GO_APPS,
-];
 
 const navItems = [
   { href: "/", label: "ホーム", icon: Home },
@@ -92,7 +81,7 @@ export function CultureGoSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <AppSwitcher currentApp="CultureGo" apps={APPS} placement="bottom" />
+        <AppSwitcher currentApp="CultureGo" apps={GO_APPS} placement="bottom" />
       </SidebarHeader>
 
       <SidebarContent>
