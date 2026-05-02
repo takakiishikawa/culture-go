@@ -20,7 +20,7 @@ function LoginContent() {
 
   return (
     <LoginPage
-      productName="kyoyogo"
+      productName="culturego"
       productLogo={
         <Compass
           size={24}

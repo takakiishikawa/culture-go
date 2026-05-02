@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-// kyoyogo スキーマのテーブル型
+// culturego スキーマのテーブル型
 export type Scope = "world" | "japan" | "vietnam";
 
 export interface RelatedArticle {
@@ -43,13 +43,13 @@ export interface CardMetadata {
   updated_at: string;
 }
 
-// kyoyogo スキーマ固定のクライアント
+// culturego スキーマ固定のクライアント
 export function createDb(accessToken?: string) {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      db: { schema: "kyoyogo" },
+      db: { schema: "culturego" },
       global: accessToken
         ? { headers: { Authorization: `Bearer ${accessToken}` } }
         : undefined,
@@ -64,7 +64,7 @@ export function createDbAdmin() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
-      db: { schema: "kyoyogo" },
+      db: { schema: "culturego" },
       auth: { autoRefreshToken: false, persistSession: false },
     },
   );

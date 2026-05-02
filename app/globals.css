@@ -4,41 +4,41 @@
 
 @variant dark (&:where(.dark, .dark *));
 
-/* ── kyoyogo — ky-* エイリアス（DS トークンへのプロダクト固有名） ── */
+/* ── culturego — cg-* エイリアス（DS トークンへのプロダクト固有名） ── */
 :root {
   --font-serif: "Noto Serif JP", "EB Garamond", Georgia, serif;
   --font-sans: "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
 
-  --ky-text: var(--color-text-primary);
-  --ky-text-muted: var(--color-text-subtle);
-  --ky-text-secondary: var(--color-text-secondary);
-  --ky-accent: var(--color-primary);
-  --ky-surface: var(--color-surface);
-  --ky-surface-2: var(--color-surface-subtle);
-  --ky-bg: var(--color-background);
-  --ky-border: var(--color-border-default);
-  --ky-border-subtle: var(--color-border-subtle);
+  --cg-text: var(--color-text-primary);
+  --cg-text-muted: var(--color-text-subtle);
+  --cg-text-secondary: var(--color-text-secondary);
+  --cg-accent: var(--color-primary);
+  --cg-surface: var(--color-surface);
+  --cg-surface-2: var(--color-surface-subtle);
+  --cg-bg: var(--color-background);
+  --cg-border: var(--color-border-default);
+  --cg-border-subtle: var(--color-border-subtle);
 }
 
 /* ── Editorial typography（ギャラリー型レイアウト用） ── */
-.ky-display {
+.cg-display {
   font-family: var(--font-serif);
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
-.ky-headline {
+.cg-headline {
   font-family: var(--font-serif);
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.25;
 }
-.ky-body-serif {
+.cg-body-serif {
   font-family: var(--font-serif);
   font-weight: 400;
   line-height: 1.7;
 }
-.ky-eyebrow {
+.cg-eyebrow {
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 500;
@@ -48,7 +48,7 @@
 }
 
 /* ── Card surfaces ── */
-.ky-card {
+.cg-card {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -56,10 +56,10 @@
     border-color var(--duration-base) var(--easing-default),
     transform var(--duration-base) var(--easing-default);
 }
-.ky-card:hover {
+.cg-card:hover {
   border-color: var(--color-border-default);
 }
-.ky-divider {
+.cg-divider {
   border-top: 1px solid var(--color-border-subtle);
 }
 

@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# kyoyogo — CLAUDE.md
+# culturego — CLAUDE.md
 
 ## プロダクト概要
 
@@ -20,19 +20,19 @@
 2. **発見欠陥**: 興味ドメインで「大きな出来事」が起きたことに気づけない
 3. **接合欠陥**: 仮想空間で完結し、現実アクションに繋がらない
 
-kyoyogo は 1, 2 を解決する週1配信と、3 を解決する Claude.ai への遷移ボタンで応える。
+culturego は 1, 2 を解決する週1配信と、3 を解決する Claude.ai への遷移ボタンで応える。
 
 ## 設計原則（妥協禁止）
 
 1. **興味タグベース** — 構造化作業を強いない。タグ管理は最小
 2. **AIが大きな出来事を判定** — 鋭さ・世界の方向性への影響で選定
 3. **週1配信、ゼロ件OK** — スローメディア原則。無理に枠を埋めない
-4. **深掘りは Claude.ai に委譲** — kyoyogo は発見と接合に徹する
+4. **深掘りは Claude.ai に委譲** — culturego は発見と接合に徹する
 5. **海外メディアプロダクト（Stratechery / Air Mail / Monocle 等）のトーン** — ギャラリー型・余白を活かす・情報過多にしない
 
 ## Not Scope（意図的に作らない）
 
-これらは作らない。「やらないことリスト」が kyoyogo の本質。
+これらは作らない。「やらないことリスト」が culturego の本質。
 
 - × 日次配信（週1で十分）
 - × 通知・リマインダー（日曜 totonoi ルーティンに組み込む）
@@ -48,8 +48,8 @@ kyoyogo は 1, 2 を解決する週1配信と、3 を解決する Claude.ai へ�
 
 - Framework: **Next.js 16 (App Router) + React 19 + TypeScript 6**
 - Styling: **Tailwind CSS v4** + `@takaki/go-design-system`
-- DB / Auth: Supabase（既存プロジェクトに `kyoyogo` スキーマを追加）
-- Deploy: Vercel（ドメイン: kyoyogo.app）
+- DB / Auth: Supabase（既存プロジェクトに `culturego` スキーマを追加）
+- Deploy: Vercel（ドメイン: culturego.app）
 - AI: `@anthropic-ai/sdk`（リサーチ系で大きな出来事を検出）
 - Cron: GitHub Actions（土曜 23:00 Asia/Ho_Chi_Minh = UTC 16:00）
 
@@ -68,7 +68,7 @@ npm run detect    # 大きな出来事検出バッチを手動実行
 `.env.local` をプロジェクトルートに作成（コミット禁止）:
 
 ```
-# Supabase（既存プロジェクトに kyoyogo スキーマを追加）
+# Supabase（既存プロジェクトに culturego スキーマを追加）
 NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
 
@@ -127,13 +127,13 @@ import { DesignTokens } from "@takaki/go-design-system";
 | Layer 3 (機能) | `@anthropic-ai/sdk`（検出バッチ専用） |
 | 禁止 | `openai`, `ai`, `@ai-sdk/*` |
 
-## データモデル（kyoyogo スキーマ）
+## データモデル（culturego スキーマ）
 
 ```sql
-kyoyogo.tags             -- 興味タグ
-kyoyogo.cards            -- 大きな出来事カード
-kyoyogo.card_tags        -- カードとタグの関連
-kyoyogo.card_metadata    -- 読了フラグ・自由メモ
+culturego.tags             -- 興味タグ
+culturego.cards            -- 大きな出来事カード
+culturego.card_tags        -- カードとタグの関連
+culturego.card_metadata    -- 読了フラグ・自由メモ
 ```
 
 ## 画面構成

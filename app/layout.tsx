@@ -19,7 +19,7 @@ const notoSerif = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
-  title: "kyoyogo — 世界の進む方向を読む",
+  title: "culturego — 世界の進む方向を読む",
   description:
     "世界・日本・ベトナムで起きる「大きな出来事」を週1で検出する、深掘りのトリガー。",
 };
@@ -38,7 +38,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var s=localStorage.getItem('ky-theme');var d=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.classList.add(d);})();`,
+            __html: `(function(){var s=localStorage.getItem('cg-theme');var d=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.classList.add(d);})();`,
           }}
         />
         <DesignTokens primaryColor="#1F2937" primaryColorHover="#0F172A" />
