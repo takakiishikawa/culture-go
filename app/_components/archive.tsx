@@ -36,12 +36,18 @@ export interface ArchiveWeek {
   cards: ArchiveCardData[];
 }
 
-function ScopeTag({ scope }: { scope: ArchiveCardData["scope"] }) {
+function ScopeTag({
+  scope,
+  dim,
+}: {
+  scope: ArchiveCardData["scope"];
+  dim: boolean;
+}) {
   const c = SCOPE_COLOR[scope];
   return (
     <span
       className="inline-flex items-center text-[10.5px] font-bold uppercase tracking-[0.32em]"
-      style={{ color: c }}
+      style={{ color: c, opacity: dim ? 0.4 : 1 }}
     >
       {SCOPE_LABEL[scope]}
     </span>
@@ -77,16 +83,25 @@ function ClaudeGlyph({ size = 11 }: { size?: number }) {
 
 function buildClaudePromptUrl(card: ArchiveCardData): string {
   const prompt = [
-    "以下の構造シフトについて、世界の進む方向の文脈で深掘りしたい。",
+    "以下の出来事について、対話を通して理解を深めたい。",
     "",
+    "【culturego について】",
+    "culturego は「世界の進む方向を読む」ためのスローメディア。",
+    "力学が変わる構造的な出来事だけをスコアリングで抽出している。",
+    "この記事は「力学が変わる出来事」として検出されたもの。",
+    "",
+    "【記事】",
     `タイトル: ${card.title}`,
-    "",
+    `要約: ${card.summary ?? ""}`,
     `主要ソース: ${card.source_urls[0] ?? ""}`,
     "",
-    "観点:",
-    "- なぜこの動きが起きたか(構造的な背景)",
-    "- 中長期で何が変わるか",
-    "- 私たちが取るべき視点",
+    "【対話したい論点(例)】",
+    "- そもそもこの事象の理解(背景・経緯)",
+    "- 世界・日本・ベトナムの構造がどう変わりうるか",
+    "- この先どのようなことが起きうるか",
+    "",
+    "【対話したいこと】",
+    "",
   ].join("\n");
   return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
 }
@@ -216,7 +231,7 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                   borderTop: isFirst ? "none" : "1px solid #F0F0F0",
                 }}
               >
-                <ScopeTag scope={card.scope} />
+                <ScopeTag scope={card.scope} dim={isRead} />
                 <span
                   className="cg-num text-[22px] font-light"
                   style={{ color: titleColor, letterSpacing: "-0.03em" }}

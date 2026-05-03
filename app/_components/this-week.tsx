@@ -41,20 +41,25 @@ export interface ThisWeekCardData {
 
 function buildClaudePromptUrl(card: ThisWeekCardData): string {
   const prompt = [
-    "以下の構造シフトについて、世界の進む方向の文脈で深掘りしたい。",
+    "以下の出来事について、対話を通して理解を深めたい。",
     "",
+    "【culturego について】",
+    "culturego は「世界の進む方向を読む」ためのスローメディア。",
+    "力学が変わる構造的な出来事だけをスコアリングで抽出している。",
+    "この記事は「力学が変わる出来事」として検出されたもの。",
+    "",
+    "【記事】",
     `タイトル: ${card.title}`,
-    "",
     `要約: ${card.summary}`,
-    "",
-    `なぜ重要か: ${card.why_important}`,
-    "",
     `主要ソース: ${card.source_urls[0] ?? ""}`,
     "",
-    "観点:",
-    "- なぜこの動きが起きたか（構造的な背景）",
-    "- 中長期で何が変わるか",
-    "- 私たちが取るべき視点",
+    "【対話したい論点(例)】",
+    "- そもそもこの事象の理解(背景・経緯)",
+    "- 世界・日本・ベトナムの構造がどう変わりうるか",
+    "- この先どのようなことが起きうるか",
+    "",
+    "【対話したいこと】",
+    "",
   ].join("\n");
   return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
 }
