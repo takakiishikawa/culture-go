@@ -30,8 +30,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
-  { href: "/", label: "ホーム", icon: Home },
-  { href: "/tags", label: "タグ管理", icon: TagsIcon },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/tags", label: "Tags", icon: TagsIcon },
 ];
 
 function isActive(href: string, pathname: string) {
@@ -133,25 +133,25 @@ export function CultureGoSidebar() {
           avatarUrl={avatarUrl}
           items={[
             {
-              title: "コンセプト",
+              title: "Concept",
               icon: Lightbulb,
               onSelect: () => router.push("/concept"),
               isActive: pathname.startsWith("/concept"),
             },
             {
-              title: "スコアリング",
+              title: "Scoring",
               icon: SlidersHorizontal,
               onSelect: () => router.push("/scoring"),
               isActive: pathname.startsWith("/scoring"),
             },
             {
-              title: "設定",
+              title: "Settings",
               icon: Settings,
               onSelect: () => router.push("/settings"),
               isActive: pathname.startsWith("/settings"),
             },
             {
-              title: isDark ? "ダーク" : "ライト",
+              title: isDark ? "Dark" : "Light",
               icon: isDark ? Moon : Sun,
               onSelect: toggleTheme,
             },
