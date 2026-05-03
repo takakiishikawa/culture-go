@@ -243,7 +243,7 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                   // grid-template-columns は md:grid の時のみ有効。
                   // mobile (display: block) では無視される。
                   gridTemplateColumns:
-                    "100px 60px 1fr 200px 130px 24px 18px",
+                    "100px 60px 1fr 200px 24px 18px",
                   borderTop: isFirst ? "none" : "1px solid #F0F0F0",
                 }}
               >
@@ -265,15 +265,7 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                     {card.title}
                   </span>
                   <KeywordRow items={card.keywords} color={keywordColor} />
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    <span className="flex flex-wrap gap-x-3 text-[10px] uppercase italic tracking-[0.16em] leading-[1.4] text-[#bbb]">
-                      {isRead && card.read_at && <span>read {card.read_at}</span>}
-                      {isDiscussed && card.discussed_at && (
-                        <span style={{ color: SCOPE_COLOR[card.scope], opacity: 0.65 }}>
-                          discussed {card.discussed_at}
-                        </span>
-                      )}
-                    </span>
+                  <div className="flex justify-end pt-1">
                     <RowDiscussButton
                       card={card}
                       isDiscussed={isDiscussed}
@@ -303,14 +295,6 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                 </span>
                 <span className="hidden md:block">
                   <KeywordRow items={card.keywords} color={keywordColor} />
-                </span>
-                <span className="hidden flex-col text-[10px] uppercase italic tracking-[0.16em] leading-[1.4] text-[#bbb] md:flex">
-                  {isRead && card.read_at && <span>read {card.read_at}</span>}
-                  {isDiscussed && card.discussed_at && (
-                    <span style={{ color: SCOPE_COLOR[card.scope], opacity: 0.65 }}>
-                      discussed {card.discussed_at}
-                    </span>
-                  )}
                 </span>
                 <span className="hidden md:block">
                   <RowDiscussButton
