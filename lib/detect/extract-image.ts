@@ -1,9 +1,30 @@
 // 記事ページから写真を取りに行く（外部 API 不使用）。
 // 一次: og:image / twitter:image / itemprop=image を head から拾う（多くのニュース系の本命）
-// 二次: 拾えなかったら body 内の <img> を走査して最初の "意味のある" 画像を返す
-// 三次: それでもダメなら fetchUnsplashImage で英語キーワード検索（要 UNSPLASH_ACCESS_KEY）
+//        ただし「ブランド汎用シェア画像」(SocialShare / DefaultOG / og-default 等) は
+//        記事固有性が無いので skip し、本文 img を優先する。
+// 二次: body 内の <img> を走査して最初の "意味のある" 画像を返す
+// 三次: それでもダメなら一次で skip した generic og:image を最後の砦として返す
+// 四次: fetchUnsplashImage で英語キーワード検索 (run.ts 側、要 UNSPLASH_ACCESS_KEY)
 
 const ARTICLE_BYTES = 512 * 1024; // 500KB 読めば本文の最初の画像までは届く想定
+
+// 「記事固有でない汎用ブランド画像」のファイル名パターン。
+// publisher が SNS シェア用に作った flat なテンプレ画像 (例:
+// eurasiagroup の SocialShare1200x630.png)。記事写真として使うと
+// ベタ塗りに見える。
+// \b は数字続き ("SocialShare1200") でマッチしないので使わない。
+const GENERIC_OG_FILENAME =
+  /(socialshare|social[-_]share|defaultog|default[-_]og|og[-_]default|generic[-_]share|brand[-_]?card|share[-_]image|default[-_]share|opengraph[-_]default|og[-_]image[-_]default)/i;
+
+function isGenericOgUrl(url: string): boolean {
+  try {
+    const path = new URL(url).pathname;
+    const filename = path.substring(path.lastIndexOf("/") + 1);
+    return GENERIC_OG_FILENAME.test(filename);
+  } catch {
+    return GENERIC_OG_FILENAME.test(url);
+  }
+}
 
 export async function fetchOgImage(
   pageUrl: string,
@@ -15,10 +36,17 @@ export async function fetchOgImage(
   if (!html) return null;
 
   const fromMeta = findFromMeta(html);
-  if (fromMeta) return resolveUrl(fromMeta, pageUrl);
+  const ogIsGeneric = fromMeta != null && isGenericOgUrl(fromMeta);
 
+  // 通常: og:image を最優先
+  if (fromMeta && !ogIsGeneric) return resolveUrl(fromMeta, pageUrl);
+
+  // og:image がブランド汎用 → 本文 img を優先
   const fromBody = findFromBody(html);
   if (fromBody) return resolveUrl(fromBody, pageUrl);
+
+  // 本文 img も無いなら最後の砦として generic og:image を返す
+  if (fromMeta) return resolveUrl(fromMeta, pageUrl);
 
   return null;
 }

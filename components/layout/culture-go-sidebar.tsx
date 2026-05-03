@@ -96,6 +96,9 @@ export function CultureGoSidebar() {
     <Sidebar>
       <SidebarHeader>
         <AppSwitcher currentApp="CultureGo" apps={GO_APPS} placement="bottom" />
+        <p className="px-2 pt-1 text-[10px] tracking-[0.18em] text-[var(--color-text-subtle)] group-data-[collapsible=icon]:hidden">
+          Weekly · Slow news
+        </p>
       </SidebarHeader>
 
       <SidebarContent>
