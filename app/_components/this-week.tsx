@@ -247,10 +247,11 @@ function DiscussButton({
   // ホバーは未対話のときだけ反転させる(対話済みは触っても見た目変えない=済みのサイン)
   const baseBg = isDiscussed ? color : "transparent";
   const baseFg = isDiscussed ? "#FFF" : color;
+  const tooltipText = isDiscussed ? "Discussed with Claude" : "Discuss with Claude";
   return (
     <button
       type="button"
-      title={isDiscussed ? "Discussed with Claude" : "Discuss with Claude"}
+      aria-label={tooltipText}
       aria-pressed={isDiscussed}
       onClick={(e) => {
         // 親 <a> のカード遷移をキャンセルして Claude を別タブで開く
@@ -259,7 +260,7 @@ function DiscussButton({
         onClick();
         window.open(href, "_blank", "noopener,noreferrer");
       }}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
+      className="group/cl relative inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
       style={{ borderColor: color, background: baseBg, color: baseFg }}
       onMouseEnter={(e) => {
         if (isDiscussed) return;
@@ -273,6 +274,11 @@ function DiscussButton({
       }}
     >
       <ClaudeGlyph size={14} />
+      <span
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-[#1A1A1A] px-2 py-1 text-[10px] font-medium tracking-[0.05em] text-white normal-case opacity-0 transition-opacity duration-150 group-hover/cl:opacity-100"
+      >
+        {tooltipText}
+      </span>
     </button>
   );
 }

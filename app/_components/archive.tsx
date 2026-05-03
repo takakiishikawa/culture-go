@@ -119,10 +119,11 @@ function RowDiscussButton({
   const href = buildClaudePromptUrl(card);
   const bg = isDiscussed ? color : "transparent";
   const fg = isDiscussed ? "#FFF" : color;
+  const tooltipText = isDiscussed ? "Discussed with Claude" : "Discuss with Claude";
   return (
     <button
       type="button"
-      title={isDiscussed ? "Discussed with Claude" : "Discuss with Claude"}
+      aria-label={tooltipText}
       aria-pressed={isDiscussed}
       onClick={(e) => {
         e.stopPropagation();
@@ -130,7 +131,7 @@ function RowDiscussButton({
         onClick();
         window.open(href, "_blank", "noopener,noreferrer");
       }}
-      className="inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors"
+      className="group/cl relative inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors"
       style={{ borderColor: color, background: bg, color: fg }}
       onMouseEnter={(e) => {
         if (isDiscussed) return;
@@ -144,6 +145,11 @@ function RowDiscussButton({
       }}
     >
       <ClaudeGlyph size={11} />
+      <span
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-[#1A1A1A] px-2 py-1 text-[10px] font-medium tracking-[0.05em] text-white normal-case opacity-0 transition-opacity duration-150 group-hover/cl:opacity-100"
+      >
+        {tooltipText}
+      </span>
     </button>
   );
 }
