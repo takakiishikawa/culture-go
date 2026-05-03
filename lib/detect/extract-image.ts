@@ -26,6 +26,27 @@ function isGenericOgUrl(url: string): boolean {
   }
 }
 
+// ファイル名から WxH を抽出 (例: "HeaderImage2000x10555.png" → {w:2000, h:10555})。
+// 多くの publisher が画像 CDN にこの慣習でファイル名を付けるので有用。
+function extractDimensionsFromUrl(
+  url: string,
+): { w: number; h: number } | null {
+  const m = url.match(/(\d{2,5})\s*[xX×]\s*(\d{2,5})\.(png|jpe?g|webp|gif)/i);
+  if (!m) return null;
+  const w = parseInt(m[1], 10);
+  const h = parseInt(m[2], 10);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return null;
+  return { w, h };
+}
+
+// 記事ヒーロー画像として不適切な極端アスペクト比 (縦長 / 横長すぎ)。
+// object-cover でレンダすると片端しか見えなくなる。
+function isExtremeAspect(w: number, h: number): boolean {
+  if (w <= 0 || h <= 0) return false;
+  const ratio = w / h;
+  return ratio < 0.4 || ratio > 4;
+}
+
 export async function fetchOgImage(
   pageUrl: string,
   timeoutMs = 10000,
@@ -37,16 +58,18 @@ export async function fetchOgImage(
 
   const fromMeta = findFromMeta(html);
   const ogIsGeneric = fromMeta != null && isGenericOgUrl(fromMeta);
+  const ogDims = fromMeta ? extractDimensionsFromUrl(fromMeta) : null;
+  const ogExtreme = ogDims != null && isExtremeAspect(ogDims.w, ogDims.h);
 
-  // 通常: og:image を最優先
-  if (fromMeta && !ogIsGeneric) return resolveUrl(fromMeta, pageUrl);
+  // 通常: og:image を最優先 (ただし汎用ブランド画像 / 極端アスペクト比は skip)
+  if (fromMeta && !ogIsGeneric && !ogExtreme) return resolveUrl(fromMeta, pageUrl);
 
-  // og:image がブランド汎用 → 本文 img を優先
+  // og:image が不適切 → 本文 img を優先
   const fromBody = findFromBody(html);
   if (fromBody) return resolveUrl(fromBody, pageUrl);
 
-  // 本文 img も無いなら最後の砦として generic og:image を返す
-  if (fromMeta) return resolveUrl(fromMeta, pageUrl);
+  // 本文 img も無いなら最後の砦として og:image を返す (極端でなければ)
+  if (fromMeta && !ogExtreme) return resolveUrl(fromMeta, pageUrl);
 
   return null;
 }
@@ -156,6 +179,11 @@ function findFromBody(html: string): string | null {
       // svg / 1x1.gif など装飾系は除外
       if (/\.svg(\?|$)/i.test(src)) continue;
       if (/\b1x1\.(gif|png)\b/i.test(src)) continue;
+
+      // 極端アスペクト比 (縦長 / 横長すぎ) — object-cover でレンダ崩れる
+      const fnDims = extractDimensionsFromUrl(src);
+      if (fnDims && isExtremeAspect(fnDims.w, fnDims.h)) continue;
+      if (w !== null && h !== null && isExtremeAspect(w, h)) continue;
 
       return src;
     }
