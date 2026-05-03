@@ -10,11 +10,40 @@ import {
   TagGroup,
   toast,
 } from "@takaki/go-design-system";
-import { Plus, Tag as TagIcon, Trash2 } from "lucide-react";
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { Plus, Tag as TagIcon, Trash2, X } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
 import { createTag, deleteTag, renameTag } from "./actions";
 import type { Tag } from "@/lib/supabase/db";
 import { pickRecommendedTags } from "@/lib/tags/suggestions";
+
+const DISMISSED_STORAGE_KEY = "cg.dismissed-suggestions";
+
+function loadDismissed(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(DISMISSED_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDismissed(list: readonly string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DISMISSED_STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // QuotaExceeded 等は無視 (致命的でない)
+  }
+}
 
 function validateName(name: string): string | undefined {
   const trimmed = name.trim();
@@ -26,12 +55,31 @@ function validateName(name: string): string | undefined {
 export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
   const [tags, setTags] = useState(initialTags);
   const [draft, setDraft] = useState("");
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
 
+  // localStorage 読み込みは初回 mount で (SSR では空のまま)
+  useEffect(() => {
+    setDismissed(loadDismissed());
+  }, []);
+
   const recommendations = useMemo(
-    () => pickRecommendedTags(tags.map((t) => t.name), 25),
-    [tags],
+    () =>
+      pickRecommendedTags(
+        tags.map((t) => t.name),
+        { limit: 25, dismissed },
+      ),
+    [tags, dismissed],
   );
+
+  function dismissSuggestion(name: string) {
+    setDismissed((prev) => {
+      if (prev.includes(name)) return prev;
+      const next = [...prev, name];
+      saveDismissed(next);
+      return next;
+    });
+  }
 
   function add(name: string) {
     const trimmed = name.trim();
@@ -113,19 +161,29 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
           </p>
           <TagGroup wrap>
             {recommendations.map((name) => (
-              <button
-                key={name}
-                type="button"
-                disabled={isPending}
-                onClick={() => add(name)}
-                className="group cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                aria-label={`Add ${name}`}
-              >
-                <TagChip className="gap-1 transition-colors group-hover:border-[#1A1A1A] group-hover:bg-[#FAFAF8]">
-                  <Plus className="h-3 w-3 opacity-60" />
-                  {name}
-                </TagChip>
-              </button>
+              <div key={name} className="group/sug relative">
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => add(name)}
+                  className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`Add ${name}`}
+                >
+                  <TagChip className="gap-1 transition-colors group-hover/sug:border-[#1A1A1A] group-hover/sug:bg-[#FAFAF8]">
+                    <Plus className="h-3 w-3 opacity-60" />
+                    {name}
+                  </TagChip>
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => dismissSuggestion(name)}
+                  aria-label={`Dismiss ${name}`}
+                  className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full border border-[#1A1A1A] bg-white text-[#1A1A1A] shadow-sm transition-opacity group-hover/sug:flex hover:bg-[#1A1A1A] hover:text-white"
+                >
+                  <X className="h-2.5 w-2.5" strokeWidth={2.5} />
+                </button>
+              </div>
             ))}
           </TagGroup>
         </div>

@@ -48,10 +48,14 @@ export const RECOMMENDED_TAG_SUGGESTIONS: readonly string[] = [
 
 export function pickRecommendedTags(
   existing: readonly string[],
-  limit = 25,
+  options: { limit?: number; dismissed?: readonly string[] } = {},
 ): string[] {
+  const limit = options.limit ?? 25;
   const seen = new Set(existing.map((s) => s.toLowerCase().trim()));
+  const dismissed = new Set(
+    (options.dismissed ?? []).map((s) => s.toLowerCase().trim()),
+  );
   return RECOMMENDED_TAG_SUGGESTIONS.filter(
-    (t) => !seen.has(t.toLowerCase()),
+    (t) => !seen.has(t.toLowerCase()) && !dismissed.has(t.toLowerCase()),
   ).slice(0, limit);
 }
