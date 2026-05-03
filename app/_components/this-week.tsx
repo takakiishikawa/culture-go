@@ -1,7 +1,111 @@
 "use client";
 
-import { useState } from "react";
-import { markCardDiscussed, markCardRead } from "@/app/_actions/cards";
+import { useMemo, useState } from "react";
+import { toast } from "@takaki/go-design-system";
+import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import {
+  generateRelatedForCard,
+  markCardDiscussed,
+  markCardRead,
+} from "@/app/_actions/cards";
+
+// 3 Angles の生成 / 再生成。card.related を local state で持ち、
+// generateRelatedForCard 成功時に上書きする。
+function useRelatedState(card: { id: string; related: RelatedArticle[] }) {
+  const [related, setRelated] = useState<RelatedArticle[]>(card.related);
+  const [generating, setGenerating] = useState(false);
+  const hasRelated = related.length > 0;
+
+  async function generate(): Promise<boolean> {
+    if (generating) return false;
+    setGenerating(true);
+    const result = await generateRelatedForCard(card.id);
+    setGenerating(false);
+    if (result.ok) {
+      setRelated(result.related as RelatedArticle[]);
+      toast.success(
+        hasRelated ? "3 Angles を再生成しました" : "3 Angles を生成しました",
+      );
+      return true;
+    }
+    toast.error(`生成失敗: ${result.error}`);
+    return false;
+  }
+
+  return { related, hasRelated, generating, generate };
+}
+
+function AnglesTrigger({
+  hasRelated,
+  generating,
+  isOpen,
+  onToggle,
+  onGenerate,
+}: {
+  hasRelated: boolean;
+  generating: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
+  onGenerate: () => void;
+}) {
+  // 生成済み: [3 Angles ↓] [↻]
+  if (hasRelated) {
+    return (
+      <span className="inline-flex items-center gap-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onToggle();
+          }}
+          className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A]"
+        >
+          <span className="block h-px w-3.5 bg-[#1A1A1A]" />
+          3 Angles {isOpen ? "↑" : "↓"}
+        </button>
+        <button
+          type="button"
+          title="3 Angles を再生成"
+          aria-label="Regenerate 3 Angles"
+          disabled={generating}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onGenerate();
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[#999] transition-colors hover:text-[#1A1A1A] disabled:opacity-50"
+        >
+          {generating ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <RefreshCw className="h-3 w-3" />
+          )}
+        </button>
+      </span>
+    );
+  }
+  // 未生成: [✨ Generate Angles]
+  return (
+    <button
+      type="button"
+      disabled={generating}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onGenerate();
+      }}
+      className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A] disabled:opacity-50"
+    >
+      {generating ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Sparkles className="h-3 w-3" />
+      )}
+      {generating ? "Generating…" : "Generate Angles"}
+    </button>
+  );
+}
 
 const SCOPE_COLOR = {
   world: "#1A2B4A",
@@ -413,23 +517,24 @@ function HeroCard({
   railPlacement?: "side" | "below";
 }) {
   const [openRail, setOpenRail] = useState(false);
-  const hasRelated = card.related.length > 0;
+  const { related, hasRelated, generating, generate } = useRelatedState(card);
+  const cardWithLocalRelated = useMemo(
+    () => ({ ...card, related }),
+    [card, related],
+  );
 
-  const trigger = hasRelated ? (
-    <button
-      type="button"
-      onClick={(e) => {
-        // 親 <a> のカード遷移をキャンセルしてレイル開閉のみ
-        e.stopPropagation();
-        e.preventDefault();
-        setOpenRail((v) => !v);
+  const trigger = (
+    <AnglesTrigger
+      hasRelated={hasRelated}
+      generating={generating}
+      isOpen={openRail}
+      onToggle={() => setOpenRail((v) => !v)}
+      onGenerate={async () => {
+        const ok = await generate();
+        if (ok) setOpenRail(true);
       }}
-      className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A]"
-    >
-      <span className="block h-px w-3.5 bg-[#1A1A1A]" />
-      3 Angles {openRail ? "↑" : "↓"}
-    </button>
-  ) : null;
+    />
+  );
 
   return (
     <article className="relative flex h-full flex-col">
@@ -446,7 +551,7 @@ function HeroCard({
       />
 
       {openRail && hasRelated && (
-        <ThreeAnglesPanel card={card} layout={railPlacement} />
+        <ThreeAnglesPanel card={cardWithLocalRelated} layout={railPlacement} />
       )}
     </article>
   );
@@ -470,22 +575,24 @@ function SmallCard({
   onMarkDiscussed: () => void;
 }) {
   const [openRail, setOpenRail] = useState(false);
-  const hasRelated = card.related.length > 0;
+  const { related, hasRelated, generating, generate } = useRelatedState(card);
+  const cardWithLocalRelated = useMemo(
+    () => ({ ...card, related }),
+    [card, related],
+  );
 
-  const trigger = hasRelated ? (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        setOpenRail((v) => !v);
+  const trigger = (
+    <AnglesTrigger
+      hasRelated={hasRelated}
+      generating={generating}
+      isOpen={openRail}
+      onToggle={() => setOpenRail((v) => !v)}
+      onGenerate={async () => {
+        const ok = await generate();
+        if (ok) setOpenRail(true);
       }}
-      className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A]"
-    >
-      <span className="block h-px w-3.5 bg-[#1A1A1A]" />
-      3 Angles {openRail ? "↑" : "↓"}
-    </button>
-  ) : null;
+    />
+  );
 
   return (
     <article className="relative flex h-full flex-col">
@@ -501,7 +608,7 @@ function SmallCard({
         rightSlot={trigger}
       />
       {openRail && hasRelated && (
-        <ThreeAnglesPanel card={card} layout="below" />
+        <ThreeAnglesPanel card={cardWithLocalRelated} layout="below" />
       )}
     </article>
   );
