@@ -77,14 +77,18 @@ function KeywordRow({ items, color = "#999" }: { items: string[]; color?: string
   );
 }
 
-function DiscussLink({ href, color, onClick }: { href: string; color: string; onClick: () => void }) {
+function DiscussButton({ href, color, onClick }: { href: string; color: string; onClick: () => void }) {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      onClick={onClick}
+    <button
+      type="button"
       title="Discuss with Claude"
+      onClick={(e) => {
+        // 親 <a> のカード遷移をキャンセルして Claude を別タブで開く
+        e.stopPropagation();
+        e.preventDefault();
+        onClick();
+        window.open(href, "_blank", "noopener,noreferrer");
+      }}
       className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
       style={{ borderColor: color, color }}
       onMouseEnter={(e) => {
@@ -99,7 +103,7 @@ function DiscussLink({ href, color, onClick }: { href: string; color: string; on
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
         <path d="M4.709 15.955l4.72-2.647.079-.23-.079-.128h-.23l-.79-.048-2.695-.073-2.337-.097-2.265-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.146-.103.018-.072-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V8.85l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.486-1.215.62-1.64-.389-3.829-.91-1.312-.328h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.087-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" />
       </svg>
-    </a>
+    </button>
   );
 }
 
@@ -108,14 +112,14 @@ function CardChrome({
   size,
   isRead,
   readAt,
-  onMarkRead,
+  onDiscussClick,
   rightSlot,
 }: {
   card: ThisWeekCardData;
   size: "lg" | "sm";
   isRead: boolean;
   readAt: string | null;
-  onMarkRead: () => void;
+  onDiscussClick: () => void;
   rightSlot?: React.ReactNode;
 }) {
   const scopeColor = SCOPE_COLOR[card.scope];
@@ -125,14 +129,16 @@ function CardChrome({
   const titleSize = big ? 40 : 20;
   const numSize = big ? 96 : 38;
   const overlayPad = big ? "24px 28px" : "14px 16px";
-  const titleColor = isRead ? "rgba(255,255,255,0.6)" : "#FFF";
+  const dimColor = "rgba(255,255,255,0.6)";
+  const titleColor = isRead ? dimColor : "#FFF";
+  const scoreColor = isRead ? dimColor : "#FFF";
   const imgFilter = isRead ? "saturate(0.5)" : "none";
   const [imgError, setImgError] = useState(false);
   const showImg = card.hero_image_url && !imgError;
 
   return (
     <>
-      <div className="relative mb-[18px]">
+      <div className="relative mb-[18px] overflow-hidden">
         {showImg ? (
           // 素の <img>: ホスト多様性 / リダイレクトで Vercel optimizer が取りこぼすケースを避ける
           // eslint-disable-next-line @next/next/no-img-element
@@ -141,12 +147,12 @@ function CardChrome({
             alt=""
             loading="lazy"
             onError={() => setImgError(true)}
-            className="w-full object-cover"
+            className="w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
             style={{ height: imgHeight, filter: imgFilter }}
           />
         ) : (
           <div
-            className="w-full"
+            className="w-full transition-transform duration-500 ease-out group-hover:scale-[1.02]"
             style={{ height: imgHeight, background: scopeColor, filter: imgFilter }}
           />
         )}
@@ -188,11 +194,12 @@ function CardChrome({
               </h2>
             </div>
             <span
-              className="cg-num shrink-0 font-light text-white"
+              className="cg-num shrink-0 font-light"
               style={{
                 fontSize: numSize,
                 lineHeight: 0.85,
                 letterSpacing: "-0.05em",
+                color: scoreColor,
               }}
             >
               {card.significance_score.toFixed(1)}
@@ -211,16 +218,7 @@ function CardChrome({
         </div>
         <div className="flex items-center gap-3.5">
           {rightSlot}
-          <a
-            href={card.source_urls[0]}
-            target="_blank"
-            rel="noreferrer"
-            onClick={onMarkRead}
-            className="border-b border-[#1A1A1A] pb-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#1A1A1A]"
-          >
-            Read
-          </a>
-          <DiscussLink href={claudeUrl} color={scopeColor} onClick={onMarkRead} />
+          <DiscussButton href={claudeUrl} color={scopeColor} onClick={onDiscussClick} />
         </div>
       </div>
     </>
@@ -243,7 +241,13 @@ function HeroCard({
 
   const trigger = hasRelated ? (
     <button
-      onClick={() => setOpenRail((v) => !v)}
+      type="button"
+      onClick={(e) => {
+        // 親 <a> のカード遷移をキャンセルしてレイル開閉のみ
+        e.stopPropagation();
+        e.preventDefault();
+        setOpenRail((v) => !v);
+      }}
       className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A]"
     >
       <span className="block h-px w-3.5 bg-[#1A1A1A]" />
@@ -252,17 +256,25 @@ function HeroCard({
   ) : null;
 
   return (
-    <article className="relative flex h-full flex-col">
-      <CardChrome
-        card={card}
-        size="lg"
-        isRead={isRead}
-        readAt={readAt}
-        onMarkRead={onMarkRead}
-        rightSlot={trigger}
-      />
+    <article className="group relative flex h-full flex-col">
+      <a
+        href={card.source_urls[0]}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onMarkRead}
+        className="block transition-opacity duration-150 active:opacity-90"
+      >
+        <CardChrome
+          card={card}
+          size="lg"
+          isRead={isRead}
+          readAt={readAt}
+          onDiscussClick={onMarkRead}
+          rightSlot={trigger}
+        />
+      </a>
 
-      {/* S3 side rail */}
+      {/* S3 side rail (親 <a> の外側に置き、ネストを避ける) */}
       {openRail && hasRelated && (
         <aside
           className="absolute top-0 z-10 w-[320px] px-6 py-5 text-white"
@@ -327,14 +339,22 @@ function SmallCard({
   onMarkRead: () => void;
 }) {
   return (
-    <article className="relative flex h-full flex-col">
-      <CardChrome
-        card={card}
-        size="sm"
-        isRead={isRead}
-        readAt={readAt}
-        onMarkRead={onMarkRead}
-      />
+    <article className="group relative flex h-full flex-col">
+      <a
+        href={card.source_urls[0]}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onMarkRead}
+        className="block transition-opacity duration-150 active:opacity-90"
+      >
+        <CardChrome
+          card={card}
+          size="sm"
+          isRead={isRead}
+          readAt={readAt}
+          onDiscussClick={onMarkRead}
+        />
+      </a>
     </article>
   );
 }
