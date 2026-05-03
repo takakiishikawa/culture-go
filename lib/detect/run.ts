@@ -125,7 +125,7 @@ ${dimensionDescriptions}
 - why_important: なぜ世界の方向に効くか（120–200 字、Stratechery 風の構造的視点）
 - source_urls: 一次〜信頼できる二次ソースの URL（複数）
 - scope: world / japan / vietnam
-- keywords: 5–10 の検索可能キーワード
+- keywords: 5–10 の検索可能キーワード (**全て英語、小文字、1–3 語のフレーズ**。例: "iran war", "energy crisis", "labor movement", "monetary policy"。日本語固有名詞も英語に置き換える。例 "中国共産党" → "chinese communist party")
 - tags: ユーザータグから合致するもの（無くてよい）
 - related_articles: 3 件ちょうど。主記事を補完する**実在の別記事**を web_search で探して URL とソース名を返す。kind は以下 3 種を 1 つずつ:
     * context: 主記事の歴史背景・構造的文脈を扱う実記事 (例: その出来事に至るまでの流れを解説した報道)
@@ -202,7 +202,8 @@ ${dimensionDescriptions}
                       },
                       title: {
                         type: "string",
-                        description: "実在する記事の見出しそのまま。",
+                        description:
+                          "30〜60 字の日本語見出し。元記事が英語等の場合は日本語に翻訳・要約する。原文の英語タイトルをそのまま入れない。",
                       },
                       url: {
                         type: "string",

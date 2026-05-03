@@ -281,9 +281,7 @@ function CardChrome({
   card,
   size,
   isRead,
-  readAt,
   isDiscussed,
-  discussedAt,
   onDiscussClick,
   onImageClick,
   rightSlot,
@@ -291,9 +289,7 @@ function CardChrome({
   card: ThisWeekCardData;
   size: "lg" | "sm";
   isRead: boolean;
-  readAt: string | null;
   isDiscussed: boolean;
-  discussedAt: string | null;
   onDiscussClick: () => void;
   onImageClick: () => void;
   rightSlot?: React.ReactNode;
@@ -404,19 +400,6 @@ function CardChrome({
       <div className="grid grid-cols-[1fr_auto] items-center gap-4 pt-1">
         <div className="flex flex-wrap items-center gap-3">
           <KeywordRow items={card.keywords} />
-          {isRead && readAt && (
-            <span className="text-[10px] uppercase italic tracking-[0.18em] text-[#bbb]">
-              · read {readAt}
-            </span>
-          )}
-          {isDiscussed && discussedAt && (
-            <span
-              className="text-[10px] uppercase italic tracking-[0.18em]"
-              style={{ color: scopeColor, opacity: 0.7 }}
-            >
-              · discussed {discussedAt}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-3.5">
           {rightSlot}
@@ -458,7 +441,7 @@ function ThreeAnglesPanel({
           className="mb-[18px] text-[10px] font-bold uppercase tracking-[0.32em]"
           style={{ color: "#999" }}
         >
-          3 Angles · AI
+          3 Angles
         </div>
         {items.map((r, i) => (
           <a
@@ -535,18 +518,14 @@ function ThreeAnglesPanel({
 function HeroCard({
   card,
   isRead,
-  readAt,
   isDiscussed,
-  discussedAt,
   onMarkRead,
   onMarkDiscussed,
   railPlacement = "side",
 }: {
   card: ThisWeekCardData;
   isRead: boolean;
-  readAt: string | null;
   isDiscussed: boolean;
-  discussedAt: string | null;
   onMarkRead: () => void;
   onMarkDiscussed: () => void;
   railPlacement?: "side" | "below";
@@ -577,9 +556,7 @@ function HeroCard({
         card={card}
         size="lg"
         isRead={isRead}
-        readAt={readAt}
         isDiscussed={isDiscussed}
-        discussedAt={discussedAt}
         onDiscussClick={onMarkDiscussed}
         onImageClick={onMarkRead}
         rightSlot={trigger}
@@ -595,17 +572,13 @@ function HeroCard({
 function SmallCard({
   card,
   isRead,
-  readAt,
   isDiscussed,
-  discussedAt,
   onMarkRead,
   onMarkDiscussed,
 }: {
   card: ThisWeekCardData;
   isRead: boolean;
-  readAt: string | null;
   isDiscussed: boolean;
-  discussedAt: string | null;
   onMarkRead: () => void;
   onMarkDiscussed: () => void;
 }) {
@@ -635,9 +608,7 @@ function SmallCard({
         card={card}
         size="sm"
         isRead={isRead}
-        readAt={readAt}
         isDiscussed={isDiscussed}
-        discussedAt={discussedAt}
         onDiscussClick={onMarkDiscussed}
         onImageClick={onMarkRead}
         rightSlot={trigger}
@@ -710,9 +681,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
         <HeroCard
           card={c}
           isRead={readIds.has(c.id)}
-          readAt={c.read_at}
           isDiscussed={discussedIds.has(c.id)}
-          discussedAt={c.discussed_at}
           onMarkRead={() => recordRead(c.id)}
           onMarkDiscussed={() => recordDiscussed(c.id)}
           railPlacement="below"
@@ -730,9 +699,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
             key={c.id}
             card={c}
             isRead={readIds.has(c.id)}
-            readAt={c.read_at}
             isDiscussed={discussedIds.has(c.id)}
-            discussedAt={c.discussed_at}
             onMarkRead={() => recordRead(c.id)}
             onMarkDiscussed={() => recordDiscussed(c.id)}
             railPlacement="below"
@@ -750,9 +717,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
         <HeroCard
           card={hero}
           isRead={readIds.has(hero.id)}
-          readAt={hero.read_at}
           isDiscussed={discussedIds.has(hero.id)}
-          discussedAt={hero.discussed_at}
           onMarkRead={() => recordRead(hero.id)}
           onMarkDiscussed={() => recordDiscussed(hero.id)}
         />
@@ -763,9 +728,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
             key={c.id}
             card={c}
             isRead={readIds.has(c.id)}
-            readAt={c.read_at}
             isDiscussed={discussedIds.has(c.id)}
-            discussedAt={c.discussed_at}
             onMarkRead={() => recordRead(c.id)}
             onMarkDiscussed={() => recordDiscussed(c.id)}
           />
