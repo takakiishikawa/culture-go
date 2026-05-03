@@ -17,14 +17,16 @@ export default async function TagsPage() {
 
   if (error) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16">
-        <p className="cg-eyebrow mb-4">tags</p>
-        <h1 className="cg-display text-3xl text-[var(--cg-text)]">
-          タグの読み込みに失敗しました
-        </h1>
-        <p className="cg-body mt-4 text-[var(--cg-text-secondary)]">
-          {error.message}
-        </p>
+      <main className="min-h-full bg-white px-14 pt-8 pb-24 text-[#1A1A1A]">
+        <header className="mx-auto max-w-3xl">
+          <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#999]">
+            tags
+          </p>
+          <h1 className="mt-3 text-[32px] font-semibold leading-[1.12] tracking-[-0.018em]">
+            タグの読み込みに失敗しました
+          </h1>
+          <p className="mt-4 text-sm leading-7 text-[#666]">{error.message}</p>
+        </header>
       </main>
     );
   }
@@ -32,18 +34,22 @@ export default async function TagsPage() {
   const tags = (data ?? []) as Tag[];
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <header className="space-y-3">
-        <p className="cg-eyebrow">tags</p>
-        <h1 className="cg-display text-3xl text-[var(--cg-text)]">
-          興味のあるドメイン
-        </h1>
-        <p className="cg-body text-[var(--cg-text-secondary)]">
-          1 語で簡潔に。並びはドラッグで入れ替えられます。
-        </p>
-      </header>
+    <main className="min-h-full bg-white px-14 pt-8 pb-24 text-[#1A1A1A]">
+      <div className="mx-auto max-w-3xl">
+        <header className="border-b border-[#1A1A1A] pb-6">
+          <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#999]">
+            tags
+          </p>
+          <h1 className="mt-3 text-[32px] font-semibold leading-[1.12] tracking-[-0.018em]">
+            興味のあるドメイン
+          </h1>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[#666]">
+            1 語で簡潔に。並びはドラッグで入れ替えられます。
+          </p>
+        </header>
 
-      <TagsClient initialTags={tags} />
+        <TagsClient initialTags={tags} />
+      </div>
     </main>
   );
 }

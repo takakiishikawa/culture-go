@@ -1,11 +1,3 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@takaki/go-design-system";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_DIMENSIONS,
@@ -40,47 +32,61 @@ export default async function ScoringRoute() {
   const weightSum = dimensions.reduce((s, d) => s + d.weight, 0);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12 space-y-6">
-      <header className="space-y-1.5">
-        <p className="cg-eyebrow">scoring</p>
-        <h1 className="cg-display text-2xl text-[var(--cg-text)]">
-          構造シフトのスコアリング
-        </h1>
-        <p className="text-sm text-[var(--cg-text-secondary)]">
-          重み付き総合スコア = Σ(各軸 × 重み)。{SIGNIFICANCE_THRESHOLD}{" "}
-          未満は配信しない。重み合計 {weightSum.toFixed(2)}。
-        </p>
-      </header>
+    <main className="min-h-full bg-white px-14 pt-8 pb-24 text-[#1A1A1A]">
+      <div className="mx-auto max-w-4xl">
+        <header className="border-b border-[#1A1A1A] pb-6">
+          <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#999]">
+            scoring
+          </p>
+          <h1 className="mt-3 text-[32px] font-semibold leading-[1.12] tracking-[-0.018em]">
+            構造シフトのスコアリング
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#666]">
+            重み付き総合スコア = Σ(各軸 × 重み)。
+            <span className="cg-num"> {SIGNIFICANCE_THRESHOLD} </span>
+            未満は配信しない。重み合計
+            <span className="cg-num"> {weightSum.toFixed(2)}</span>。
+          </p>
+        </header>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">#</TableHead>
-            <TableHead className="w-32">軸</TableHead>
-            <TableHead>定義 / 採点基準</TableHead>
-            <TableHead className="w-16 text-right">w</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+        <div className="mt-10">
+          <div
+            className="grid items-baseline gap-6 border-b border-[#1A1A1A] pb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-[#999]"
+            style={{ gridTemplateColumns: "40px 140px 1fr 60px" }}
+          >
+            <span>#</span>
+            <span>軸</span>
+            <span>定義 / 採点基準</span>
+            <span className="text-right">w</span>
+          </div>
           {dimensions.map((d, i) => (
-            <TableRow key={d.id}>
-              <TableCell className="align-top text-[var(--cg-text-subtle)] tabular-nums">
+            <div
+              key={d.id}
+              className="grid items-baseline gap-6 py-5"
+              style={{
+                gridTemplateColumns: "40px 140px 1fr 60px",
+                borderTop: i === 0 ? "none" : "1px solid #F0F0F0",
+              }}
+            >
+              <span className="cg-num text-[18px] font-light text-[#bbb]">
                 {String(i + 1).padStart(2, "0")}
-              </TableCell>
-              <TableCell className="align-top font-medium">{d.label}</TableCell>
-              <TableCell className="align-top">
+              </span>
+              <span className="text-[15px] font-medium text-[#1A1A1A]">
+                {d.label}
+              </span>
+              <div className="text-sm leading-6 text-[#1A1A1A]">
                 <div>{d.description}</div>
-                <div className="mt-1 text-xs text-[var(--cg-text-secondary)]">
+                <div className="mt-1.5 text-xs leading-6 text-[#888]">
                   {d.rubric}
                 </div>
-              </TableCell>
-              <TableCell className="align-top text-right tabular-nums">
+              </div>
+              <span className="cg-num text-right text-[18px] font-light tracking-[-0.02em] text-[#1A1A1A]">
                 {d.weight.toFixed(2)}
-              </TableCell>
-            </TableRow>
+              </span>
+            </div>
           ))}
-        </TableBody>
-      </Table>
+        </div>
+      </div>
     </main>
   );
 }

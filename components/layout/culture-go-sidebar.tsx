@@ -49,6 +49,18 @@ export function CultureGoSidebar() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [isDark, setIsDark] = useState(false);
 
+  const weekLabel = useMemo(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const start = new Date(d);
+    start.setDate(d.getDate() - day);
+    return start.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, []);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
@@ -103,6 +115,15 @@ export function CultureGoSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <div className="mt-auto px-3 pb-3 group-data-[collapsible=icon]:hidden">
+          <p className="text-[9px] font-bold uppercase tracking-[0.32em] text-[var(--color-text-subtle)]">
+            edition
+          </p>
+          <p className="cg-num mt-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-subtle)]">
+            {weekLabel}
+          </p>
+        </div>
       </SidebarContent>
 
       <SidebarFooter>

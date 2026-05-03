@@ -77,7 +77,6 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
       const result = await renameTag(id, trimmed);
       if (!result.ok) {
         toast.error(`名前変更に失敗: ${result.error}`);
-        // ロールバック
         setTags((prev) =>
           prev.map((t) => (t.id === id ? { ...t, name: previous.name } : t)),
         );
@@ -116,7 +115,7 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
   }
 
   return (
-    <section className="mt-10 space-y-8">
+    <section className="mt-10 space-y-12">
       <form onSubmit={handleAdd} className="flex gap-3">
         <Input
           value={draft}
@@ -132,8 +131,10 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
       </form>
 
       {recommendations.length > 0 && (
-        <div className="space-y-3">
-          <p className="cg-eyebrow">候補</p>
+        <div className="space-y-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#999]">
+            候補
+          </p>
           <TagGroup wrap>
             {recommendations.map((name) => (
               <button
@@ -144,7 +145,7 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
                 className="group cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label={`${name} を追加`}
               >
-                <TagChip className="gap-1 transition-colors group-hover:border-[var(--cg-border)] group-hover:bg-[var(--cg-surface-2)]">
+                <TagChip className="gap-1 transition-colors group-hover:border-[#1A1A1A] group-hover:bg-[#FAFAF8]">
                   <Plus className="h-3 w-3 opacity-60" />
                   {name}
                 </TagChip>
@@ -154,52 +155,69 @@ export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
         </div>
       )}
 
-      {tags.length === 0 ? (
-        <EmptyState
-          icon={<TagIcon size={28} />}
-          title="まだタグがありません"
-          description="興味のあるドメインを 1 語ずつ加えて、検出範囲を伝えましょう。"
-        />
-      ) : (
-        <DndProvider items={tags.map((t) => t.id)} onReorder={handleReorder}>
-          <ul className="space-y-2">
-            {tags.map((tag) => (
-              <SortableItem
-                key={tag.id}
-                id={tag.id}
-                className="flex items-center gap-3 rounded-md border border-[var(--cg-border-subtle)] bg-[var(--cg-surface)] px-3 py-2"
-              >
-                <DragHandle aria-label="並び替え" />
-                <div className="flex-1 min-w-0">
-                  <InlineEdit
-                    value={tag.name}
-                    onChange={(next) => handleRename(tag.id, next)}
-                    validate={validateName}
-                    placeholder="タグ名"
-                  />
-                </div>
-                <ConfirmDialog
-                  trigger={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`${tag.name} を削除`}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
+      <div>
+        <div className="flex items-baseline gap-4 border-b border-[#1A1A1A] pb-3">
+          <span className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#1A1A1A]">
+            登録済み
+          </span>
+          <span className="flex-1" />
+          <span className="cg-num text-[10.5px] uppercase tracking-[0.18em] text-[#999]">
+            {tags.length} {tags.length === 1 ? "tag" : "tags"}
+          </span>
+        </div>
+
+        {tags.length === 0 ? (
+          <div className="pt-10">
+            <EmptyState
+              icon={<TagIcon size={28} />}
+              title="まだタグがありません"
+              description="興味のあるドメインを 1 語ずつ加えて、検出範囲を伝えましょう。"
+            />
+          </div>
+        ) : (
+          <DndProvider items={tags.map((t) => t.id)} onReorder={handleReorder}>
+            <ul>
+              {tags.map((tag, i) => (
+                <SortableItem
+                  key={tag.id}
+                  id={tag.id}
+                  className={
+                    "flex items-center gap-4 py-3 pl-1" +
+                    (i === 0 ? "" : " border-t border-[#F0F0F0]")
                   }
-                  title={`「${tag.name}」を削除しますか？`}
-                  description="このタグに紐づくカードの関連付けは外れますが、カード自体は残ります。"
-                  confirmLabel="削除"
-                  variant="destructive"
-                  onConfirm={() => handleDelete(tag.id)}
-                />
-              </SortableItem>
-            ))}
-          </ul>
-        </DndProvider>
-      )}
+                >
+                  <DragHandle aria-label="並び替え" />
+                  <div className="min-w-0 flex-1">
+                    <InlineEdit
+                      value={tag.name}
+                      onChange={(next) => handleRename(tag.id, next)}
+                      validate={validateName}
+                      placeholder="タグ名"
+                    />
+                  </div>
+                  <ConfirmDialog
+                    trigger={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`${tag.name} を削除`}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    }
+                    title={`「${tag.name}」を削除しますか？`}
+                    description="このタグに紐づくカードの関連付けは外れますが、カード自体は残ります。"
+                    confirmLabel="削除"
+                    variant="destructive"
+                    onConfirm={() => handleDelete(tag.id)}
+                  />
+                </SortableItem>
+              ))}
+            </ul>
+          </DndProvider>
+        )}
+      </div>
     </section>
   );
 }
