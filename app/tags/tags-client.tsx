@@ -14,11 +14,17 @@ import { Plus, Tag as TagIcon, Trash2, X } from "lucide-react";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
   type FormEvent,
 } from "react";
-import { createTag, deleteTag, renameTag } from "./actions";
+import {
+  createTag,
+  deleteTag,
+  generateTagSuggestions,
+  renameTag,
+} from "./actions";
 import type { Tag } from "@/lib/supabase/db";
 import { pickRecommendedTags } from "@/lib/tags/suggestions";
 
@@ -52,25 +58,80 @@ function validateName(name: string): string | undefined {
   return undefined;
 }
 
+const SUGGESTION_LOW_THRESHOLD = 10;
+const SUGGESTION_DISPLAY_LIMIT = 25;
+const AI_FETCH_THROTTLE_MS = 3000;
+const AI_BATCH_SIZE = 20;
+
 export function TagsClient({ initialTags }: { initialTags: Tag[] }) {
   const [tags, setTags] = useState(initialTags);
   const [draft, setDraft] = useState("");
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const lastAiFetchRef = useRef(0);
   const [isPending, startTransition] = useTransition();
 
   // localStorage 読み込みは初回 mount で (SSR では空のまま)
   useEffect(() => {
     setDismissed(loadDismissed());
+    setHydrated(true);
   }, []);
 
-  const recommendations = useMemo(
-    () =>
-      pickRecommendedTags(
-        tags.map((t) => t.name),
-        { limit: 25, dismissed },
-      ),
-    [tags, dismissed],
-  );
+  const recommendations = useMemo(() => {
+    const tagNames = tags.map((t) => t.name);
+    const fromStatic = pickRecommendedTags(tagNames, {
+      limit: SUGGESTION_DISPLAY_LIMIT,
+      dismissed,
+    });
+    const seen = new Set(
+      [
+        ...tagNames,
+        ...dismissed,
+        ...fromStatic,
+      ].map((s) => s.toLowerCase().trim()),
+    );
+    const fromAi = aiSuggestions.filter(
+      (s) => !seen.has(s.toLowerCase().trim()),
+    );
+    return [...fromStatic, ...fromAi].slice(0, SUGGESTION_DISPLAY_LIMIT);
+  }, [tags, dismissed, aiSuggestions]);
+
+  // 推薦が枯れたら AI 補充。3 秒スロットルで無限ループ回避。
+  useEffect(() => {
+    if (!hydrated) return;
+    if (recommendations.length >= SUGGESTION_LOW_THRESHOLD) return;
+    if (aiLoading) return;
+    const now = Date.now();
+    if (now - lastAiFetchRef.current < AI_FETCH_THROTTLE_MS) return;
+    lastAiFetchRef.current = now;
+
+    let cancelled = false;
+    setAiLoading(true);
+    void generateTagSuggestions(
+      tags.map((t) => t.name),
+      [...dismissed, ...aiSuggestions],
+      AI_BATCH_SIZE,
+    )
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok && result.suggestions.length > 0) {
+          setAiSuggestions((prev) =>
+            Array.from(new Set([...prev, ...result.suggestions])),
+          );
+        } else if (!result.ok) {
+          toast.error(`AI 補充に失敗: ${result.error}`);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setAiLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, recommendations.length, aiLoading, tags, dismissed, aiSuggestions]);
 
   function dismissSuggestion(name: string) {
     setDismissed((prev) => {
