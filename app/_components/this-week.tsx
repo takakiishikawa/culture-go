@@ -301,7 +301,7 @@ function CardChrome({
   const scopeColor = SCOPE_COLOR[card.scope];
   const claudeUrl = buildClaudePromptUrl(card);
   const big = size === "lg";
-  const imgHeight = big ? 570 : 228;
+  const imgHeight = big ? 553 : 221;
   const titleSize = big ? 40 : 20;
   const numSize = big ? 96 : 38;
   const overlayPad = big ? "24px 28px" : "14px 16px";
