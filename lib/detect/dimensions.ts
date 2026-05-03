@@ -3,6 +3,13 @@ import type { CulturegoClient } from "@/lib/supabase/types";
 /** 配信される最低スコア（重み付き総合）。これ未満は瑣末ニュースとして除外。 */
 export const SIGNIFICANCE_THRESHOLD = 7.0;
 
+/**
+ * 信頼性軸の最低許容スコア。総合 score が高くても信頼性がこれ未満のものは
+ * defense-in-depth で drop（個人ブログを一次ソースに置いた候補が通り抜けるのを防ぐ）。
+ * label に "信頼性" / "reliability" / "trust" を含む軸を対象に判定。
+ */
+export const RELIABILITY_MIN = 5;
+
 export interface ScoringDimension {
   id: string;
   label: string;
@@ -39,11 +46,24 @@ export const DEFAULT_DIMENSIONS: ScoringDimension[] = [
     label: "信頼性",
     description: "情報源の確度・検証可能性",
     rubric:
-      "0=単一の二次ソース/3=複数の二次ソース/5=主要報道機関/7=複数の一次ソース/9=公式発表+独立検証",
+      "0=個人ブログ・コンサル意見・匿名サイト・wordpress 個人 / 3=複数の二次ソース or 業界誌 / 5=主要報道機関 (Reuters, AP, BBC, NHK, 朝日 等) / 7=複数の一次ソース (政府発表 + 当該機関の公式) / 9=公式発表 + 独立検証",
     weight: 0.3,
     display_order: 3,
   },
 ];
+
+/** dimensions の中から「信頼性」軸を見つけてスコアを返す。無ければ null。 */
+export function reliabilityScoreFor(
+  dims: ScoringDimension[],
+  scoresByPromptKey: Record<string, number>,
+): number | null {
+  const idx = dims.findIndex((d) =>
+    /信頼性|reliab|trust/i.test(d.label),
+  );
+  if (idx < 0) return null;
+  const v = scoresByPromptKey[`dim_${idx + 1}`];
+  return typeof v === "number" ? v : null;
+}
 
 export async function loadDimensions(
   sb: CulturegoClient,

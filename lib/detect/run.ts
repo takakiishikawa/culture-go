@@ -4,8 +4,10 @@ import { fetchOgImage, fetchUnsplashImage } from "./extract-image";
 import { isPaywallUrl, PAYWALL_HINT_FOR_PROMPT } from "./paywall-domains";
 import {
   SIGNIFICANCE_THRESHOLD,
+  RELIABILITY_MIN,
   computeSignificance,
   loadDimensions,
+  reliabilityScoreFor,
   type ScoringDimension,
 } from "./dimensions";
 
@@ -32,6 +34,7 @@ export interface DetectionSummary {
   candidatesGenerated: number;
   inserted: number;
   skippedBelowThreshold: number;
+  skippedLowReliability: number;
   skippedOverWeeklyCap: number;
   insertedCardIds: string[];
   errors: string[];
@@ -102,8 +105,12 @@ ${dimensionDescriptions}
 
 ソース選定の制約（重要）:
 - ペイウォール / 部分閲覧専用の主要サイト (${PAYWALL_HINT_FOR_PROMPT} 等) を一次ソースに置かない。本文が読者に閲覧できないため。
-- 優先順位: 一次ソース (政府発表 / 企業 IR / 学術論文 / 公式 PR) → 無料公開のニュース通信社 (Reuters, AP, BBC, NHK, 朝日 通常記事, AFP) → 信頼性の高い解説媒体の無料記事。
+- 優先順位: ① 一次ソース (政府発表 / 企業 IR / 学術論文 / 公式 PR) → ② 無料公開のニュース通信社 (Reuters, AP, BBC, NHK, 朝日 通常記事, AFP, 共同通信, 時事通信, AlJazeera, DW, France24, 産経) → ③ 信頼性の高い解説媒体の無料記事。
 - 同じ事象を扱う複数ソースがある場合、ペイウォール無しを選ぶこと。
+- **個人ブログ / コンサル系オピニオン / wordpress 個人サイト / hatena / note.com 個人 / ameba / Substack 個人記事 / Medium 個人記事 / 匿名ブログ は一次ソース不可**。出版社の編集を経ていない個人発信は除外。
+  - 例: "コンサルタントの独り言"、"〇〇 Blog"、"global-scm.com/blog/" のような個人ドメインのブログ記事は使わない。
+  - 判定ヒント: 記事に編集部 (editorial board) があるか、署名がジャーナリストか個人か、ドメインが報道機関か個人/コンサルか。
+- 外信記事を引用する場合も、引用元の Reuters/AP 原文 URL を直接ソースに置くこと (孫引きブログを置かない)。
 
 ユーザーの興味タグ（このタグに合致するものを優先するが、これらに限らず本当に大きい出来事は含める）: ${tagNames.join("、") || "（未設定）"}`;
 
@@ -272,6 +279,7 @@ ${dimensionDescriptions}
     candidatesGenerated: candidates.length,
     inserted: 0,
     skippedBelowThreshold: 0,
+    skippedLowReliability: 0,
     skippedOverWeeklyCap: 0,
     insertedCardIds: [],
     errors: [],
@@ -299,6 +307,12 @@ ${dimensionDescriptions}
   for (const s of scored) {
     if (s.score < SIGNIFICANCE_THRESHOLD) {
       summary.skippedBelowThreshold += 1;
+      continue;
+    }
+    // 信頼性 floor: 主要報道機関未満 (= 個人ブログ・コンサル意見) は drop
+    const reliability = reliabilityScoreFor(dimensions, s.candidate.scores);
+    if (reliability !== null && reliability < RELIABILITY_MIN) {
+      summary.skippedLowReliability += 1;
       continue;
     }
     passing.push(s);

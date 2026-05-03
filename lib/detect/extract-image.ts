@@ -88,6 +88,12 @@ function findMeta(html: string, attribute: string, name: string): string | null 
 const IGNORE_PATTERNS =
   /\b(logo|favicon|sprite|avatar|pixel|tracking|advert|sponsor|emoji|button|placeholder|spinner|loader|share|social)\b/i;
 
+// 埋め込み (動画 / SNS) のサムネは記事本体と無関係なので除外。
+// 例: i.ytimg.com (YouTube), i.vimeocdn.com (Vimeo), pbs.twimg.com (X 引用),
+//     scontent-*.cdninstagram.com (IG), gravatar.com (Wp コメント avatar)
+const EMBED_THUMB_HOSTS =
+  /\b(i\.ytimg\.com|img\.youtube\.com|youtu\.be|i\.vimeocdn\.com|player\.vimeo\.com|pbs\.twimg\.com|video\.twimg\.com|abs\.twimg\.com|cdninstagram\.com|fbcdn\.net|gravatar\.com|secure\.gravatar\.com|disquscdn\.com|widget\.amazon)\b/i;
+
 function findFromBody(html: string): string | null {
   const bodyStart = html.search(/<body\b/i);
   const body = bodyStart >= 0 ? html.slice(bodyStart) : html;
@@ -110,6 +116,8 @@ function findFromBody(html: string): string | null {
       if (src.startsWith("data:")) continue;
       if (IGNORE_PATTERNS.test(tag)) continue;
       if (IGNORE_PATTERNS.test(src)) continue;
+      // 埋め込み (YouTube / Vimeo / X / IG / Gravatar 等) のサムネは記事と関係ないため除外。
+      if (EMBED_THUMB_HOSTS.test(src)) continue;
 
       // 寸法が分かる場合、極小は除外（tracking pixel / icon）
       const w = parseDim(attr(tag, "width"));
