@@ -522,7 +522,11 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
       next.add(id);
       return next;
     });
-    void markCardRead(id);
+    markCardRead(id)
+      .then((r) => {
+        if (!r.ok) console.error("[markCardRead] persist failed:", r.error);
+      })
+      .catch((e) => console.error("[markCardRead] threw:", e));
   }
 
   function recordDiscussed(id: string) {
@@ -543,7 +547,11 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
       next.add(id);
       return next;
     });
-    void markCardDiscussed(id);
+    markCardDiscussed(id)
+      .then((r) => {
+        if (!r.ok) console.error("[markCardDiscussed] persist failed:", r.error);
+      })
+      .catch((e) => console.error("[markCardDiscussed] threw:", e));
   }
 
   if (cards.length === 0) return null;

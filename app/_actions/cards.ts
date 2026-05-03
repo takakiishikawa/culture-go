@@ -4,14 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchOgImage, fetchUnsplashImage } from "@/lib/detect/extract-image";
 import { revalidatePath } from "next/cache";
 
-export async function markCardRead(cardId: string): Promise<void> {
+export type MarkResult = { ok: true } | { ok: false; error: string };
+
+export async function markCardRead(cardId: string): Promise<MarkResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    console.warn("[markCardRead] no auth user — skipping");
-    return;
+    return { ok: false, error: "no auth user (session expired?)" };
   }
 
   const { error } = await supabase.from("card_metadata").upsert(
@@ -22,17 +23,19 @@ export async function markCardRead(cardId: string): Promise<void> {
     },
     { onConflict: "card_id" },
   );
-  if (error) console.error("[markCardRead] upsert failed:", error);
+  if (error) {
+    return { ok: false, error: `${error.code ?? "?"} ${error.message}` };
+  }
+  return { ok: true };
 }
 
-export async function markCardDiscussed(cardId: string): Promise<void> {
+export async function markCardDiscussed(cardId: string): Promise<MarkResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    console.warn("[markCardDiscussed] no auth user — skipping");
-    return;
+    return { ok: false, error: "no auth user (session expired?)" };
   }
 
   const now = new Date().toISOString();
@@ -45,7 +48,10 @@ export async function markCardDiscussed(cardId: string): Promise<void> {
     },
     { onConflict: "card_id" },
   );
-  if (error) console.error("[markCardDiscussed] upsert failed:", error);
+  if (error) {
+    return { ok: false, error: `${error.code ?? "?"} ${error.message}` };
+  }
+  return { ok: true };
 }
 
 export type BackfillResult =
