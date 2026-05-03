@@ -57,6 +57,28 @@ function buildClaudePromptUrl(card: ThisWeekCardData): string {
   return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
 }
 
+const ANGLE_ASK: Record<RelatedArticle["kind"], string> = {
+  context: "歴史背景・構造的文脈を、過去の類似事例と対比しながら深掘りして。",
+  counterpoint: "この見方とは異なる視点・反対論を、編集者の中立な距離から整理して。",
+  parallel: "類似する過去の事例を 1〜2 つ挙げて、何が同じで何が違うかを比較して。",
+};
+
+function buildAngleClaudeUrl(
+  card: ThisWeekCardData,
+  angle: RelatedArticle,
+): string {
+  const prompt = [
+    `「${card.title}」について、別角度から深掘りしたい。`,
+    "",
+    `要約: ${card.summary}`,
+    "",
+    `角度: ${angle.title}`,
+    "",
+    `観点: ${ANGLE_ASK[angle.kind]}`,
+  ].join("\n");
+  return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
+}
+
 const KEYWORD_LIMIT = 3;
 
 function KeywordRow({ items, color = "#999" }: { items: string[]; color?: string }) {
@@ -113,6 +135,7 @@ function CardChrome({
   isRead,
   readAt,
   onDiscussClick,
+  onImageClick,
   rightSlot,
 }: {
   card: ThisWeekCardData;
@@ -120,6 +143,7 @@ function CardChrome({
   isRead: boolean;
   readAt: string | null;
   onDiscussClick: () => void;
+  onImageClick: () => void;
   rightSlot?: React.ReactNode;
 }) {
   const scopeColor = SCOPE_COLOR[card.scope];
@@ -142,7 +166,13 @@ function CardChrome({
 
   return (
     <>
-      <div className="relative mb-[18px] overflow-hidden">
+      <a
+        href={card.source_urls[0]}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onImageClick}
+        className="group/img relative mb-[18px] block overflow-hidden transition-opacity duration-150 active:opacity-90"
+      >
         {showImg ? (
           // 素の <img>: ホスト多様性 / リダイレクトで Vercel optimizer が取りこぼすケースを避ける
           // eslint-disable-next-line @next/next/no-img-element
@@ -151,12 +181,12 @@ function CardChrome({
             alt=""
             loading="lazy"
             onError={() => setImgError(true)}
-            className="w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+            className="w-full object-cover transition-transform duration-500 ease-out group-hover/img:scale-[1.02]"
             style={{ height: imgHeight, filter: imgFilter }}
           />
         ) : (
           <div
-            className="w-full transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+            className="w-full transition-transform duration-500 ease-out group-hover/img:scale-[1.02]"
             style={{
               height: imgHeight,
               background: scopeColor,
@@ -215,7 +245,7 @@ function CardChrome({
             </span>
           </div>
         </div>
-      </div>
+      </a>
       <div className="grid grid-cols-[1fr_auto] items-center gap-4 pt-1">
         <div className="flex flex-wrap items-center gap-3">
           <KeywordRow items={card.keywords} />
@@ -265,25 +295,18 @@ function HeroCard({
   ) : null;
 
   return (
-    <article className="group relative flex h-full flex-col">
-      <a
-        href={card.source_urls[0]}
-        target="_blank"
-        rel="noreferrer"
-        onClick={onMarkRead}
-        className="block transition-opacity duration-150 active:opacity-90"
-      >
-        <CardChrome
-          card={card}
-          size="lg"
-          isRead={isRead}
-          readAt={readAt}
-          onDiscussClick={onMarkRead}
-          rightSlot={trigger}
-        />
-      </a>
+    <article className="relative flex h-full flex-col">
+      <CardChrome
+        card={card}
+        size="lg"
+        isRead={isRead}
+        readAt={readAt}
+        onDiscussClick={onMarkRead}
+        onImageClick={onMarkRead}
+        rightSlot={trigger}
+      />
 
-      {/* S3 side rail (親 <a> の外側に置き、ネストを避ける) */}
+      {/* S3 side rail (画像の <a> とは独立) */}
       {openRail && hasRelated && (
         <aside
           className="absolute top-0 z-10 w-[320px] px-6 py-5 text-white"
@@ -299,37 +322,33 @@ function HeroCard({
           >
             3 Angles · AI
           </div>
-          {card.related.map((r, i) => (
-            <a
-              key={`${r.kind}-${i}`}
-              href={card.source_urls[0]}
-              target="_blank"
-              rel="noreferrer"
-              onClick={onMarkRead}
-              className="block py-4"
-              style={{
-                borderTop: i > 0 ? "1px solid #333" : "none",
-              }}
-            >
-              <div
-                className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.32em]"
+          {card.related
+            .filter((r): r is RelatedArticle => Boolean(r?.kind && r?.title))
+            .map((r, i) => (
+              <a
+                key={`${r.kind}-${i}`}
+                href={buildAngleClaudeUrl(card, r)}
+                target="_blank"
+                rel="noreferrer"
+                className="block py-4"
                 style={{
-                  color:
-                    SCOPE_COLOR[card.scope] === "#1A2B4A" ? "#8AA4D8" : "#D08080",
+                  borderTop: i > 0 ? "1px solid #333" : "none",
                 }}
               >
-                {r.kind}
-              </div>
-              <div className="text-sm font-medium leading-[1.4] text-white">
-                {r.title}
-              </div>
-              {r.read_minutes != null && (
-                <div className="mt-2 text-[10px] tracking-[0.14em] text-[#888]">
-                  {r.read_minutes} MIN READ
+                <div
+                  className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.32em]"
+                  style={{
+                    color:
+                      SCOPE_COLOR[card.scope] === "#1A2B4A" ? "#8AA4D8" : "#D08080",
+                  }}
+                >
+                  {r.kind}
                 </div>
-              )}
-            </a>
-          ))}
+                <div className="text-sm font-medium leading-[1.4] text-white">
+                  {r.title}
+                </div>
+              </a>
+            ))}
         </aside>
       )}
     </article>
@@ -348,22 +367,15 @@ function SmallCard({
   onMarkRead: () => void;
 }) {
   return (
-    <article className="group relative flex h-full flex-col">
-      <a
-        href={card.source_urls[0]}
-        target="_blank"
-        rel="noreferrer"
-        onClick={onMarkRead}
-        className="block transition-opacity duration-150 active:opacity-90"
-      >
-        <CardChrome
-          card={card}
-          size="sm"
-          isRead={isRead}
-          readAt={readAt}
-          onDiscussClick={onMarkRead}
-        />
-      </a>
+    <article className="relative flex h-full flex-col">
+      <CardChrome
+        card={card}
+        size="sm"
+        isRead={isRead}
+        readAt={readAt}
+        onDiscussClick={onMarkRead}
+        onImageClick={onMarkRead}
+      />
     </article>
   );
 }

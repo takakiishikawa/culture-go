@@ -17,7 +17,12 @@ interface Candidate {
   scope: "world" | "japan" | "vietnam";
   keywords?: string[];
   tags?: string[];
-  related_articles?: { title: string; url: string }[];
+  // 3 Angles: 各カードに付ける別角度のミニ見出し (UI 側のサイドレイル用)。
+  // kind: context (歴史背景) | counterpoint (反対視点) | parallel (過去事例の対比)
+  related_articles?: {
+    kind: "context" | "counterpoint" | "parallel";
+    title: string;
+  }[];
   image_query?: string; // Unsplash フォールバック用 (英語 2-4 語)
   scores: Record<string, number>; // dim_1, dim_2, ...
   published_at?: string;
@@ -112,6 +117,11 @@ ${dimensionDescriptions}
 - scope: world / japan / vietnam
 - keywords: 5–10 の検索可能キーワード
 - tags: ユーザータグから合致するもの（無くてよい）
+- related_articles: 3 件ちょうど。各々が別角度の "深掘り見出し"。kind は以下 3 種を 1 つずつ:
+    * context: 歴史背景・構造的文脈の見出し (例: "How the 'Blazing Furnace' Became the Defining Metaphor of Vietnamese Politics")
+    * counterpoint: 反対視点・批判的読みの見出し (例: "Why Some Economists Think Powell Cut Too Late")
+    * parallel: 過去の類似事例との対比見出し (例: "1995 Revisited: The Last Time the Fed Pivoted on a Soft Landing")
+  各 title は 30–60 字、本記事と同じ言語 (本記事が日本語なら日本語、英語なら英語)。
 - image_query: 英語 2–4 語の象徴的キーワード (記事に画像が無かった時の代替写真検索用)。固有名詞より象徴語: 例 "federal reserve building", "tokyo diet chamber", "hanoi street market", "semiconductor wafer", "container ship port"
 - scores: ${dimensions.map((_, i) => `dim_${i + 1}`).join(", ")} を 0–10 で
 - published_at: 出来事の発生日 (ISO8601)`;
@@ -166,13 +176,24 @@ ${dimensionDescriptions}
                 tags: { type: "array", items: { type: "string" } },
                 related_articles: {
                   type: "array",
+                  description:
+                    "3 件ちょうど。各カードに付ける別角度の深掘り見出し。kind を context/counterpoint/parallel 各 1 件ずつ含めること。",
+                  minItems: 3,
+                  maxItems: 3,
                   items: {
                     type: "object",
                     properties: {
-                      title: { type: "string" },
-                      url: { type: "string", format: "uri" },
+                      kind: {
+                        type: "string",
+                        enum: ["context", "counterpoint", "parallel"],
+                      },
+                      title: {
+                        type: "string",
+                        description:
+                          "30–60 字の見出し。本記事と同じ言語で書く。",
+                      },
                     },
-                    required: ["title", "url"],
+                    required: ["kind", "title"],
                   },
                 },
                 image_query: {
