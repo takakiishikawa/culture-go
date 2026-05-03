@@ -23,7 +23,11 @@ interface RawCard {
   published_at: string;
   related_articles: RelatedArticle[] | null;
   card_metadata:
-    | { is_read: boolean | null; updated_at: string | null }[]
+    | {
+        is_read: boolean | null;
+        updated_at: string | null;
+        discussed_at: string | null;
+      }[]
     | null;
 }
 
@@ -74,6 +78,7 @@ function formatWeekLabel(weekStart: Date): string {
 function toThisWeek(c: RawCard): ThisWeekCardData {
   const meta = c.card_metadata?.[0];
   const isRead = meta?.is_read === true;
+  const isDiscussed = !!meta?.discussed_at;
   return {
     id: c.id,
     title: c.title,
@@ -87,12 +92,15 @@ function toThisWeek(c: RawCard): ThisWeekCardData {
     related: c.related_articles ?? [],
     is_read: isRead,
     read_at: isRead && meta?.updated_at ? formatRelative(meta.updated_at) : null,
+    is_discussed: isDiscussed,
+    discussed_at: isDiscussed ? formatRelative(meta!.discussed_at!) : null,
   };
 }
 
 function toArchive(c: RawCard): ArchiveCardData {
   const meta = c.card_metadata?.[0];
   const isRead = meta?.is_read === true;
+  const isDiscussed = !!meta?.discussed_at;
   return {
     id: c.id,
     title: c.title,
@@ -102,6 +110,8 @@ function toArchive(c: RawCard): ArchiveCardData {
     source_urls: c.source_urls,
     is_read: isRead,
     read_at: isRead && meta?.updated_at ? formatRelative(meta.updated_at) : null,
+    is_discussed: isDiscussed,
+    discussed_at: isDiscussed ? formatRelative(meta!.discussed_at!) : null,
   };
 }
 
@@ -113,7 +123,7 @@ export default async function HomePage() {
     .select(
       `id, title, summary, why_important, source_urls, hero_image_url,
        scope, keywords, significance_score, published_at, related_articles,
-       card_metadata ( is_read, updated_at )`,
+       card_metadata ( is_read, updated_at, discussed_at )`,
     )
     .order("published_at", { ascending: false });
 

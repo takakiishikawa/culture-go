@@ -21,6 +21,25 @@ export async function markCardRead(cardId: string): Promise<void> {
   );
 }
 
+export async function markCardDiscussed(cardId: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const now = new Date().toISOString();
+  await supabase.from("card_metadata").upsert(
+    {
+      card_id: cardId,
+      is_read: true,
+      discussed_at: now,
+      updated_at: now,
+    },
+    { onConflict: "card_id" },
+  );
+}
+
 export type BackfillResult =
   | { ok: true; updated: number; skipped: number }
   | { ok: false; error: string };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { markCardRead } from "@/app/_actions/cards";
+import { markCardDiscussed, markCardRead } from "@/app/_actions/cards";
 
 const SCOPE_COLOR = {
   world: "#1A2B4A",
@@ -35,6 +35,8 @@ export interface ThisWeekCardData {
   related: RelatedArticle[];
   is_read: boolean;
   read_at: string | null;
+  is_discussed: boolean;
+  discussed_at: string | null;
 }
 
 function buildClaudePromptUrl(card: ThisWeekCardData): string {
@@ -77,11 +79,35 @@ function KeywordRow({ items, color = "#999" }: { items: string[]; color?: string
   );
 }
 
-function DiscussButton({ href, color, onClick }: { href: string; color: string; onClick: () => void }) {
+// Claude logo (small)
+function ClaudeGlyph({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M4.709 15.955l4.72-2.647.079-.23-.079-.128h-.23l-.79-.048-2.695-.073-2.337-.097-2.265-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.146-.103.018-.072-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V8.85l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.486-1.215.62-1.64-.389-3.829-.91-1.312-.328h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.087-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" />
+    </svg>
+  );
+}
+
+function DiscussButton({
+  href,
+  color,
+  isDiscussed,
+  onClick,
+}: {
+  href: string;
+  color: string;
+  isDiscussed: boolean;
+  onClick: () => void;
+}) {
+  // 「対話済み」= scope 色で塗りつぶし + 白アイコン。未対話は線のみ。
+  // ホバーは未対話のときだけ反転させる(対話済みは触っても見た目変えない=済みのサイン)
+  const baseBg = isDiscussed ? color : "transparent";
+  const baseFg = isDiscussed ? "#FFF" : color;
   return (
     <button
       type="button"
-      title="Discuss with Claude"
+      title={isDiscussed ? "Discussed with Claude" : "Discuss with Claude"}
+      aria-pressed={isDiscussed}
       onClick={(e) => {
         // 親 <a> のカード遷移をキャンセルして Claude を別タブで開く
         e.stopPropagation();
@@ -90,19 +116,19 @@ function DiscussButton({ href, color, onClick }: { href: string; color: string; 
         window.open(href, "_blank", "noopener,noreferrer");
       }}
       className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors"
-      style={{ borderColor: color, color }}
+      style={{ borderColor: color, background: baseBg, color: baseFg }}
       onMouseEnter={(e) => {
+        if (isDiscussed) return;
         e.currentTarget.style.background = color;
         e.currentTarget.style.color = "#FFF";
       }}
       onMouseLeave={(e) => {
+        if (isDiscussed) return;
         e.currentTarget.style.background = "transparent";
         e.currentTarget.style.color = color;
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-        <path d="M4.709 15.955l4.72-2.647.079-.23-.079-.128h-.23l-.79-.048-2.695-.073-2.337-.097-2.265-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.146-.103.018-.072-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V8.85l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.486-1.215.62-1.64-.389-3.829-.91-1.312-.328h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.087-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" />
-      </svg>
+      <ClaudeGlyph size={14} />
     </button>
   );
 }
@@ -112,6 +138,8 @@ function CardChrome({
   size,
   isRead,
   readAt,
+  isDiscussed,
+  discussedAt,
   onDiscussClick,
   onImageClick,
   rightSlot,
@@ -120,6 +148,8 @@ function CardChrome({
   size: "lg" | "sm";
   isRead: boolean;
   readAt: string | null;
+  isDiscussed: boolean;
+  discussedAt: string | null;
   onDiscussClick: () => void;
   onImageClick: () => void;
   rightSlot?: React.ReactNode;
@@ -232,10 +262,23 @@ function CardChrome({
               · read {readAt}
             </span>
           )}
+          {isDiscussed && discussedAt && (
+            <span
+              className="text-[10px] uppercase italic tracking-[0.18em]"
+              style={{ color: scopeColor, opacity: 0.7 }}
+            >
+              · discussed {discussedAt}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3.5">
           {rightSlot}
-          <DiscussButton href={claudeUrl} color={scopeColor} onClick={onDiscussClick} />
+          <DiscussButton
+            href={claudeUrl}
+            color={scopeColor}
+            isDiscussed={isDiscussed}
+            onClick={onDiscussClick}
+          />
         </div>
       </div>
     </>
@@ -246,12 +289,18 @@ function HeroCard({
   card,
   isRead,
   readAt,
+  isDiscussed,
+  discussedAt,
   onMarkRead,
+  onMarkDiscussed,
 }: {
   card: ThisWeekCardData;
   isRead: boolean;
   readAt: string | null;
+  isDiscussed: boolean;
+  discussedAt: string | null;
   onMarkRead: () => void;
+  onMarkDiscussed: () => void;
 }) {
   const [openRail, setOpenRail] = useState(false);
   const hasRelated = card.related.length > 0;
@@ -279,7 +328,9 @@ function HeroCard({
         size="lg"
         isRead={isRead}
         readAt={readAt}
-        onDiscussClick={onMarkRead}
+        isDiscussed={isDiscussed}
+        discussedAt={discussedAt}
+        onDiscussClick={onMarkDiscussed}
         onImageClick={onMarkRead}
         rightSlot={trigger}
       />
@@ -346,12 +397,18 @@ function SmallCard({
   card,
   isRead,
   readAt,
+  isDiscussed,
+  discussedAt,
   onMarkRead,
+  onMarkDiscussed,
 }: {
   card: ThisWeekCardData;
   isRead: boolean;
   readAt: string | null;
+  isDiscussed: boolean;
+  discussedAt: string | null;
   onMarkRead: () => void;
+  onMarkDiscussed: () => void;
 }) {
   return (
     <article className="relative flex h-full flex-col">
@@ -360,7 +417,9 @@ function SmallCard({
         size="sm"
         isRead={isRead}
         readAt={readAt}
-        onDiscussClick={onMarkRead}
+        isDiscussed={isDiscussed}
+        discussedAt={discussedAt}
+        onDiscussClick={onMarkDiscussed}
         onImageClick={onMarkRead}
       />
     </article>
@@ -371,6 +430,9 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(cards.filter((c) => c.is_read).map((c) => c.id)),
   );
+  const [discussedIds, setDiscussedIds] = useState<Set<string>>(
+    () => new Set(cards.filter((c) => c.is_discussed).map((c) => c.id)),
+  );
 
   function recordRead(id: string) {
     if (readIds.has(id)) return;
@@ -380,6 +442,27 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
       return next;
     });
     void markCardRead(id);
+  }
+
+  function recordDiscussed(id: string) {
+    // Claude を押した時点で「読んだ」も同時に立てる(対話 = 触れた)
+    setReadIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    if (discussedIds.has(id)) {
+      // 既に対話済みでも Claude を再度開きたいニーズはあるので onClick は通すが
+      // サーバ更新は冪等化のため抑える(タイムスタンプを上書きしない)
+      return;
+    }
+    setDiscussedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    void markCardDiscussed(id);
   }
 
   if (cards.length === 0) return null;
@@ -396,7 +479,10 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
           card={hero}
           isRead={readIds.has(hero.id)}
           readAt={hero.read_at}
+          isDiscussed={discussedIds.has(hero.id)}
+          discussedAt={hero.discussed_at}
           onMarkRead={() => recordRead(hero.id)}
+          onMarkDiscussed={() => recordDiscussed(hero.id)}
         />
       </div>
       <div className="flex flex-col gap-10">
@@ -406,7 +492,10 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
             card={c}
             isRead={readIds.has(c.id)}
             readAt={c.read_at}
+            isDiscussed={discussedIds.has(c.id)}
+            discussedAt={c.discussed_at}
             onMarkRead={() => recordRead(c.id)}
+            onMarkDiscussed={() => recordDiscussed(c.id)}
           />
         ))}
       </div>

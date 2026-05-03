@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { markCardDiscussed, markCardRead } from "@/app/_actions/cards";
+
 const SCOPE_COLOR = {
   world: "#1A2B4A",
   japan: "#8B0000",
@@ -13,12 +18,16 @@ const SCOPE_LABEL = {
 export interface ArchiveCardData {
   id: string;
   title: string;
+  summary?: string;
+  why_important?: string;
   scope: "world" | "japan" | "vietnam";
   keywords: string[];
   significance_score: number;
   source_urls: string[];
   is_read: boolean;
   read_at: string | null;
+  is_discussed: boolean;
+  discussed_at: string | null;
 }
 
 export interface ArchiveWeek {
@@ -58,7 +67,110 @@ function KeywordRow({ items, color }: { items: string[]; color: string }) {
   );
 }
 
+function ClaudeGlyph({ size = 11 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M4.709 15.955l4.72-2.647.079-.23-.079-.128h-.23l-.79-.048-2.695-.073-2.337-.097-2.265-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.146-.103.018-.072-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V8.85l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.486-1.215.62-1.64-.389-3.829-.91-1.312-.328h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.087-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" />
+    </svg>
+  );
+}
+
+function buildClaudePromptUrl(card: ArchiveCardData): string {
+  const prompt = [
+    "以下の構造シフトについて、世界の進む方向の文脈で深掘りしたい。",
+    "",
+    `タイトル: ${card.title}`,
+    "",
+    `主要ソース: ${card.source_urls[0] ?? ""}`,
+    "",
+    "観点:",
+    "- なぜこの動きが起きたか(構造的な背景)",
+    "- 中長期で何が変わるか",
+    "- 私たちが取るべき視点",
+  ].join("\n");
+  return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
+}
+
+function RowDiscussButton({
+  card,
+  isDiscussed,
+  onClick,
+}: {
+  card: ArchiveCardData;
+  isDiscussed: boolean;
+  onClick: () => void;
+}) {
+  const color = SCOPE_COLOR[card.scope];
+  const href = buildClaudePromptUrl(card);
+  const bg = isDiscussed ? color : "transparent";
+  const fg = isDiscussed ? "#FFF" : color;
+  return (
+    <button
+      type="button"
+      title={isDiscussed ? "Discussed with Claude" : "Discuss with Claude"}
+      aria-pressed={isDiscussed}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onClick();
+        window.open(href, "_blank", "noopener,noreferrer");
+      }}
+      className="inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors"
+      style={{ borderColor: color, background: bg, color: fg }}
+      onMouseEnter={(e) => {
+        if (isDiscussed) return;
+        e.currentTarget.style.background = color;
+        e.currentTarget.style.color = "#FFF";
+      }}
+      onMouseLeave={(e) => {
+        if (isDiscussed) return;
+        e.currentTarget.style.background = "transparent";
+        e.currentTarget.style.color = color;
+      }}
+    >
+      <ClaudeGlyph size={11} />
+    </button>
+  );
+}
+
 export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
+  const initialRead = new Set<string>();
+  const initialDiscussed = new Set<string>();
+  for (const w of weeks) {
+    for (const c of w.cards) {
+      if (c.is_read) initialRead.add(c.id);
+      if (c.is_discussed) initialDiscussed.add(c.id);
+    }
+  }
+  const [readIds, setReadIds] = useState<Set<string>>(initialRead);
+  const [discussedIds, setDiscussedIds] = useState<Set<string>>(initialDiscussed);
+
+  function recordRead(id: string) {
+    if (readIds.has(id)) return;
+    setReadIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    void markCardRead(id);
+  }
+
+  function recordDiscussed(id: string) {
+    setReadIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    if (discussedIds.has(id)) return;
+    setDiscussedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    void markCardDiscussed(id);
+  }
+
   if (weeks.length === 0) return null;
 
   return (
@@ -85,9 +197,10 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
             </span>
           </div>
           {week.cards.map((card, cIdx) => {
-            const dim = card.is_read;
-            const titleColor = dim ? "#999" : "#1A1A1A";
-            const keywordColor = dim ? "#bbb" : "#999";
+            const isRead = readIds.has(card.id);
+            const isDiscussed = discussedIds.has(card.id);
+            const titleColor = isRead ? "#999" : "#1A1A1A";
+            const keywordColor = isRead ? "#bbb" : "#999";
             const isFirst = wIdx === 0 && cIdx === 0;
             return (
               <a
@@ -95,9 +208,11 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                 href={card.source_urls[0]}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => recordRead(card.id)}
                 className="grid items-center gap-6 py-4 pl-3"
                 style={{
-                  gridTemplateColumns: "100px 60px 1fr 200px 110px 32px",
+                  gridTemplateColumns:
+                    "100px 60px 1fr 200px 130px 24px 18px",
                   borderTop: isFirst ? "none" : "1px solid #F0F0F0",
                 }}
               >
@@ -118,9 +233,19 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                   {card.title}
                 </span>
                 <KeywordRow items={card.keywords} color={keywordColor} />
-                <span className="text-[10px] uppercase italic tracking-[0.16em] text-[#bbb]">
-                  {dim && card.read_at ? `read ${card.read_at}` : ""}
+                <span className="flex flex-col text-[10px] uppercase italic tracking-[0.16em] leading-[1.4] text-[#bbb]">
+                  {isRead && card.read_at && <span>read {card.read_at}</span>}
+                  {isDiscussed && card.discussed_at && (
+                    <span style={{ color: SCOPE_COLOR[card.scope], opacity: 0.65 }}>
+                      discussed {card.discussed_at}
+                    </span>
+                  )}
                 </span>
+                <RowDiscussButton
+                  card={card}
+                  isDiscussed={isDiscussed}
+                  onClick={() => recordDiscussed(card.id)}
+                />
                 <span className="text-base text-[#999]">→</span>
               </a>
             );
