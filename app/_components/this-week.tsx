@@ -193,6 +193,9 @@ function CardChrome({
             src={card.hero_image_url ?? ""}
             alt=""
             loading="lazy"
+            // Referer ベースの hotlinking 保護 (Eurasia Group 等) で 403 になるのを回避。
+            // 第三者サイトからの <img> に Referer を送らないことで、no-Referer 扱いに。
+            referrerPolicy="no-referrer"
             onError={() => setImgError(true)}
             className="w-full object-cover transition-transform duration-500 ease-out group-hover/img:scale-[1.02]"
             style={{ height: imgHeight, filter: imgFilter }}
