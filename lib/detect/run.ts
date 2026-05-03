@@ -19,11 +19,13 @@ interface Candidate {
   scope: "world" | "japan" | "vietnam";
   keywords?: string[];
   tags?: string[];
-  // 3 Angles: 各カードに付ける別角度のミニ見出し (UI 側のサイドレイル用)。
-  // kind: context (歴史背景) | counterpoint (反対視点) | parallel (過去事例の対比)
+  // 3 Angles: 主記事を補完する実在の別記事 (UI のサイドレイルから別タブで開く)。
+  // kind: context (歴史背景) | counterpoint (異なる視点) | parallel (過去事例)
   related_articles?: {
     kind: "context" | "counterpoint" | "parallel";
     title: string;
+    url: string;
+    source: string;
   }[];
   image_query?: string; // Unsplash フォールバック用 (英語 2-4 語)
   scores: Record<string, number>; // dim_1, dim_2, ...
@@ -61,13 +63,14 @@ interface DetectionConfig {
 const CONFIGS: Record<DetectionMode, DetectionConfig> = {
   full: {
     model: "claude-sonnet-4-6",
-    maxWebSearches: 8,
+    // 主検出 8 + 各候補に補足記事 3 件を探す枠が要る
+    maxWebSearches: 16,
     maxCandidates: 8,
     maxTokens: 16000,
   },
   fast: {
     model: "claude-haiku-4-5-20251001",
-    maxWebSearches: 3,
+    maxWebSearches: 5,
     maxCandidates: 4,
     maxTokens: 6000,
   },
@@ -124,11 +127,13 @@ ${dimensionDescriptions}
 - scope: world / japan / vietnam
 - keywords: 5–10 の検索可能キーワード
 - tags: ユーザータグから合致するもの（無くてよい）
-- related_articles: 3 件ちょうど。各々が別角度の "深掘り見出し"。kind は以下 3 種を 1 つずつ:
-    * context: 歴史背景・構造的文脈の見出し (例: "How the 'Blazing Furnace' Became the Defining Metaphor of Vietnamese Politics")
-    * counterpoint: 反対視点・批判的読みの見出し (例: "Why Some Economists Think Powell Cut Too Late")
-    * parallel: 過去の類似事例との対比見出し (例: "1995 Revisited: The Last Time the Fed Pivoted on a Soft Landing")
-  各 title は 30–60 字、本記事と同じ言語 (本記事が日本語なら日本語、英語なら英語)。
+- related_articles: 3 件ちょうど。主記事を補完する**実在の別記事**を web_search で探して URL とソース名を返す。kind は以下 3 種を 1 つずつ:
+    * context: 主記事の歴史背景・構造的文脈を扱う実記事 (例: その出来事に至るまでの流れを解説した報道)
+    * counterpoint: 主記事と異なる視点・対立する読みの実記事 (例: 同じ事象を逆の評価で書いた論考や報道)
+    * parallel: 主記事と類似する過去事例を扱う実記事 (例: 過去の似たケースを解説した記事)
+  各記事に必須: kind, title (実記事の見出しそのまま), url (実在する公開 URL), source (媒体名 e.g., "Reuters", "NHK", "AlJazeera")。
+  ※ AI が要約した架空の記事ではなく、必ず実在する記事の URL を引くこと。
+  ※ ペイウォール / 個人ブログ / コンサル意見は使わない (本記事と同じソース選定基準)。
 - image_query: 英語 2–4 語の象徴的キーワード (記事に画像が無かった時の代替写真検索用)。固有名詞より象徴語: 例 "federal reserve building", "tokyo diet chamber", "hanoi street market", "semiconductor wafer", "container ship port"
 - scores: ${dimensions.map((_, i) => `dim_${i + 1}`).join(", ")} を 0–10 で
 - published_at: 出来事の発生日 (ISO8601)`;
@@ -184,7 +189,7 @@ ${dimensionDescriptions}
                 related_articles: {
                   type: "array",
                   description:
-                    "3 件ちょうど。各カードに付ける別角度の深掘り見出し。kind を context/counterpoint/parallel 各 1 件ずつ含めること。",
+                    "3 件ちょうど。主記事を補完する実在の別記事。kind を context/counterpoint/parallel 各 1 件ずつ。架空の記事を捏造せず、web_search で実 URL を確認すること。ペイウォール / 個人ブログ禁止。",
                   minItems: 3,
                   maxItems: 3,
                   items: {
@@ -196,11 +201,19 @@ ${dimensionDescriptions}
                       },
                       title: {
                         type: "string",
-                        description:
-                          "30–60 字の見出し。本記事と同じ言語で書く。",
+                        description: "実在する記事の見出しそのまま。",
+                      },
+                      url: {
+                        type: "string",
+                        format: "uri",
+                        description: "実在する記事の公開 URL。",
+                      },
+                      source: {
+                        type: "string",
+                        description: "媒体名 (例: Reuters, NHK, AlJazeera)",
                       },
                     },
-                    required: ["kind", "title"],
+                    required: ["kind", "title", "url", "source"],
                   },
                 },
                 image_query: {
@@ -262,6 +275,7 @@ ${dimensionDescriptions}
 
   // ペイウォール一次ソースを後段でも防御 (Claude のミス保険)。
   // source_urls から paywall を除外、結果として空になる候補は drop。
+  // related_articles 内の paywall リンクも同様に除外。
   const candidates: Candidate[] = [];
   let droppedPaywall = 0;
   for (const c of rawCandidates) {
@@ -272,7 +286,14 @@ ${dimensionDescriptions}
       droppedPaywall += 1;
       continue;
     }
-    candidates.push({ ...c, source_urls: filteredUrls });
+    const filteredRelated = (c.related_articles ?? []).filter(
+      (r) => !isPaywallUrl(r.url),
+    );
+    candidates.push({
+      ...c,
+      source_urls: filteredUrls,
+      related_articles: filteredRelated,
+    });
   }
 
   const summary: DetectionSummary = {

@@ -18,8 +18,8 @@ const SCOPE_LABEL = {
 export interface RelatedArticle {
   kind: "context" | "counterpoint" | "parallel";
   title: string;
+  url: string;
   source?: string;
-  read_minutes?: number;
 }
 
 export interface ThisWeekCardData {
@@ -53,28 +53,6 @@ function buildClaudePromptUrl(card: ThisWeekCardData): string {
     "- なぜこの動きが起きたか（構造的な背景）",
     "- 中長期で何が変わるか",
     "- 私たちが取るべき視点",
-  ].join("\n");
-  return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
-}
-
-const ANGLE_ASK: Record<RelatedArticle["kind"], string> = {
-  context: "歴史背景・構造的文脈を、過去の類似事例と対比しながら深掘りして。",
-  counterpoint: "この見方とは異なる視点・反対論を、編集者の中立な距離から整理して。",
-  parallel: "類似する過去の事例を 1〜2 つ挙げて、何が同じで何が違うかを比較して。",
-};
-
-function buildAngleClaudeUrl(
-  card: ThisWeekCardData,
-  angle: RelatedArticle,
-): string {
-  const prompt = [
-    `「${card.title}」について、別角度から深掘りしたい。`,
-    "",
-    `要約: ${card.summary}`,
-    "",
-    `角度: ${angle.title}`,
-    "",
-    `観点: ${ANGLE_ASK[angle.kind]}`,
   ].join("\n");
   return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
 }
@@ -323,11 +301,13 @@ function HeroCard({
             3 Angles · AI
           </div>
           {card.related
-            .filter((r): r is RelatedArticle => Boolean(r?.kind && r?.title))
+            .filter((r): r is RelatedArticle =>
+              Boolean(r?.kind && r?.title && r?.url),
+            )
             .map((r, i) => (
               <a
                 key={`${r.kind}-${i}`}
-                href={buildAngleClaudeUrl(card, r)}
+                href={r.url}
                 target="_blank"
                 rel="noreferrer"
                 className="block py-4"
@@ -339,7 +319,9 @@ function HeroCard({
                   className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.32em]"
                   style={{
                     color:
-                      SCOPE_COLOR[card.scope] === "#1A2B4A" ? "#8AA4D8" : "#D08080",
+                      SCOPE_COLOR[card.scope] === "#1A2B4A"
+                        ? "#8AA4D8"
+                        : "#D08080",
                   }}
                 >
                   {r.kind}
@@ -347,6 +329,11 @@ function HeroCard({
                 <div className="text-sm font-medium leading-[1.4] text-white">
                   {r.title}
                 </div>
+                {r.source && (
+                  <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888]">
+                    {r.source}
+                  </div>
+                )}
               </a>
             ))}
         </aside>
