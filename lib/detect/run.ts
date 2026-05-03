@@ -131,9 +131,10 @@ ${dimensionDescriptions}
     * context: 主記事の歴史背景・構造的文脈を扱う実記事 (例: その出来事に至るまでの流れを解説した報道)
     * counterpoint: 主記事と異なる視点・対立する読みの実記事 (例: 同じ事象を逆の評価で書いた論考や報道)
     * parallel: 主記事と類似する過去事例を扱う実記事 (例: 過去の似たケースを解説した記事)
-  各記事に必須: kind, title (実記事の見出しそのまま), url (実在する公開 URL), source (媒体名 e.g., "Reuters", "NHK", "AlJazeera")。
+  各記事に必須: kind, title, url (実在する公開 URL), source (媒体名 e.g., "Reuters", "NHK", "AlJazeera")。
   ※ AI が要約した架空の記事ではなく、必ず実在する記事の URL を引くこと。
   ※ ペイウォール / 個人ブログ / コンサル意見は使わない (本記事と同じソース選定基準)。
+  ※ title は**日本語で表示用に書く** (30〜60 字)。元記事が英語等の場合は日本語に翻訳・要約した見出しにする。原文の英語タイトルをそのまま入れない。
 - image_query: 英語 2–4 語の象徴的キーワード (記事に画像が無かった時の代替写真検索用)。固有名詞より象徴語: 例 "federal reserve building", "tokyo diet chamber", "hanoi street market", "semiconductor wafer", "container ship port"
 - scores: ${dimensions.map((_, i) => `dim_${i + 1}`).join(", ")} を 0–10 で
 - published_at: 出来事の発生日 (ISO8601)`;

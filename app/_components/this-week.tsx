@@ -48,10 +48,39 @@ function AnglesTrigger({
   onToggle: () => void;
   onGenerate: () => void;
 }) {
+  // editorial-quiet な hover/press。
+  // - 文字ボタン: hover は薄い ink underline、press は scale + opacity
+  // - アイコンボタン: hover で円形 BG が浮かび上がる、press は scale
+  // tooltip は CSS-only で**カーソル上**に表示 (browser native の title=下表示を避ける)。
+  const textBtnBase =
+    "group/btn relative inline-flex items-center gap-2 rounded-sm px-1 py-0.5 " +
+    "text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A] " +
+    "transition-all duration-150 ease-out " +
+    "hover:bg-[#F5F5F2] " +
+    "active:scale-[0.97] active:opacity-80 " +
+    "disabled:cursor-not-allowed disabled:opacity-50 " +
+    "disabled:hover:bg-transparent";
+
+  const iconBtnBase =
+    "group/btn relative inline-flex h-6 w-6 items-center justify-center rounded-full " +
+    "text-[#999] transition-all duration-150 ease-out " +
+    "hover:bg-[#F0F0F0] hover:text-[#1A1A1A] " +
+    "active:scale-90 active:bg-[#EAEAEA] " +
+    "disabled:cursor-not-allowed disabled:opacity-50 " +
+    "disabled:hover:bg-transparent disabled:hover:text-[#999]";
+
+  // CSS-only tooltip (カーソル上に表示, hover で fade-in)
+  const tooltipClass =
+    "pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 " +
+    "whitespace-nowrap rounded bg-[#1A1A1A] px-2 py-1 " +
+    "text-[10px] font-medium tracking-[0.05em] text-white normal-case " +
+    "opacity-0 transition-opacity duration-150 " +
+    "group-hover/btn:opacity-100";
+
   // 生成済み: [3 Angles ↓] [↻]
   if (hasRelated) {
     return (
-      <span className="inline-flex items-center gap-2">
+      <span className="inline-flex items-center gap-1.5">
         <button
           type="button"
           onClick={(e) => {
@@ -59,14 +88,17 @@ function AnglesTrigger({
             e.preventDefault();
             onToggle();
           }}
-          className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A]"
+          aria-expanded={isOpen}
+          className={textBtnBase}
         >
-          <span className="block h-px w-3.5 bg-[#1A1A1A]" />
+          <span
+            className="block h-px w-3.5 bg-[#1A1A1A] transition-all duration-200 group-hover/btn:w-5"
+            aria-hidden
+          />
           3 Angles {isOpen ? "↑" : "↓"}
         </button>
         <button
           type="button"
-          title="3 Angles を再生成"
           aria-label="Regenerate 3 Angles"
           disabled={generating}
           onClick={(e) => {
@@ -74,13 +106,14 @@ function AnglesTrigger({
             e.preventDefault();
             onGenerate();
           }}
-          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[#999] transition-colors hover:text-[#1A1A1A] disabled:opacity-50"
+          className={iconBtnBase}
         >
           {generating ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
             <RefreshCw className="h-3 w-3" />
           )}
+          <span className={tooltipClass}>3 Angles を再生成</span>
         </button>
       </span>
     );
@@ -90,19 +123,21 @@ function AnglesTrigger({
     <button
       type="button"
       disabled={generating}
+      aria-label="Generate 3 Angles"
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();
         onGenerate();
       }}
-      className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A] disabled:opacity-50"
+      className={textBtnBase}
     >
       {generating ? (
         <Loader2 className="h-3 w-3 animate-spin" />
       ) : (
-        <Sparkles className="h-3 w-3" />
+        <Sparkles className="h-3 w-3 transition-transform duration-200 group-hover/btn:rotate-12" />
       )}
       {generating ? "Generating…" : "Generate Angles"}
+      <span className={tooltipClass}>このカード用に 3 Angles を生成</span>
     </button>
   );
 }

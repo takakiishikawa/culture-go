@@ -175,7 +175,12 @@ export async function generateRelatedForCard(
 ソース選定:
 - 優先: Reuters, AP, BBC, NHK, 朝日, AlJazeera, AFP, 共同, 時事, DW, France24
 - 不可: ペイウォール (${PAYWALL_HINT_FOR_PROMPT} 等) / 個人ブログ / wordpress 個人 / hatena 個人 / note 個人 / 匿名サイト / コンサル意見ブログ
-- 必須: 実在する公開 URL であること、AI で要約した架空記事は禁止`,
+- 必須: 実在する公開 URL であること、AI で要約した架空記事は禁止
+
+タイトル表示の言語ルール (重要):
+- title は**日本語で表示用に書く** (30〜60 字、本記事の文体に揃える)。
+- 元記事が英語等の場合は日本語に翻訳・要約した見出しにする。原文をそのまま入れない。
+- source は媒体名 (例: "Reuters", "BBC", "NHK")。原語表記でよい。`,
       tools: [
         {
           type: "web_search_20250305",
