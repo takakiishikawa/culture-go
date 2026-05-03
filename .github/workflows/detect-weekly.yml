@@ -1,9 +1,10 @@
 name: detect-weekly
 
 on:
-  # 土曜 02:00 Asia/Ho_Chi_Minh (UTC+7) = 金曜 19:00 UTC
+  # 日曜 02:00 Asia/Ho_Chi_Minh (UTC+7) = 土曜 19:00 UTC
+  # （土曜深夜の totonoi ルーティンに当てるため、土→日の切り替わり直後）
   schedule:
-    - cron: "0 19 * * 5"
+    - cron: "0 19 * * 6"
   # 手動実行も可
   workflow_dispatch:
     inputs:

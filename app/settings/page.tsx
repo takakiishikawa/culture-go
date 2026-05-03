@@ -48,7 +48,7 @@ export default function SettingsRoute() {
           <Section
             eyebrow="manual run"
             title="検出を手動で実行"
-            description="通常は GitHub Actions が土曜 02:00 (Asia/Ho_Chi_Minh) に自動実行。検証用にここから即時実行できる。閾値以上のカードのみ DB に書き込まれる。"
+            description="通常は GitHub Actions が日曜 02:00 (Asia/Ho_Chi_Minh) に自動実行。検証用にここから即時実行できる。閾値以上のカードのみ DB に書き込まれる。"
             action={<RunDetectionButton />}
           />
           <Section

@@ -51,7 +51,7 @@ culturego は 1, 2 を解決する週1配信と、3 を解決する Claude.ai �
 - DB / Auth: Supabase（既存プロジェクトに `culturego` スキーマを追加）
 - Deploy: Vercel（ドメイン: culturego.app）
 - AI: `@anthropic-ai/sdk`（リサーチ系で大きな出来事を検出）
-- Cron: GitHub Actions（土曜 23:00 Asia/Ho_Chi_Minh = UTC 16:00）
+- Cron: GitHub Actions（日曜 02:00 Asia/Ho_Chi_Minh = 土曜 19:00 UTC）
 
 ## 開発コマンド
 
