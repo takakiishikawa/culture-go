@@ -128,11 +128,10 @@ export async function generateTagSuggestions(
 新しい興味タグ (1 語または 2-3 語の短いフレーズ) を提案する。
 
 ルール:
-- 1-15 字の短いタグ
+- **全て英語、小文字、1–3 語**。例: "geopolitics", "ai regulation", "supply chain", "us-china"
 - 既存タグと dismissed には絶対に被らない (大文字小文字・スペース無視で完全一致を避ける)
 - 速報・芸能・スポーツ・有名人・犯罪は出さない
-- 個別企業名より構造を表す概念 (例: "通貨同盟" > "JPMorgan")
-- 日本語ベース、必要なら英語混じり可`,
+- 個別企業名より構造を表す概念 (例: "currency union" > "jpmorgan")`,
       tools: [
         {
           name: "submit_suggestions",

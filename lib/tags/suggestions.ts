@@ -3,47 +3,47 @@
 // /tags ページで「まだ追加されていないもの」を上位 N 件表示する。
 
 export const RECOMMENDED_TAG_SUGGESTIONS: readonly string[] = [
-  // テック/AI
-  "半導体",
-  "AI規制",
-  "AI倫理",
-  "量子コンピュータ",
-  "ロボティクス",
-  "合成生物学",
-  "宇宙開発",
-  "サイバーセキュリティ",
-  "暗号資産",
-  // 経済
-  "マクロ経済",
-  "中央銀行",
-  "インフレ",
-  "エネルギー",
-  "サプライチェーン",
-  "通貨",
-  "株式市場",
-  // 地政学
-  "地政学",
-  "米中関係",
-  "欧州",
-  "中東",
-  "台湾",
-  "韓国",
-  "インド",
-  "インドネシア",
-  "G20",
-  // 社会
-  "気候変動",
-  "再生可能エネルギー",
-  "人口動態",
-  "都市計画",
-  "医療",
-  "食料安全保障",
-  "選挙",
-  // 産業
-  "モビリティ",
-  "製造業",
-  "メディア",
-  "教育",
+  // tech / ai
+  "semiconductors",
+  "ai regulation",
+  "ai ethics",
+  "quantum computing",
+  "robotics",
+  "synthetic biology",
+  "space industry",
+  "cybersecurity",
+  "cryptocurrency",
+  // economy
+  "macroeconomics",
+  "central banks",
+  "inflation",
+  "energy",
+  "supply chain",
+  "currency",
+  "equities",
+  // geopolitics
+  "geopolitics",
+  "us-china",
+  "europe",
+  "middle east",
+  "taiwan",
+  "south korea",
+  "india",
+  "indonesia",
+  "g20",
+  // society
+  "climate change",
+  "renewables",
+  "demographics",
+  "urban planning",
+  "healthcare",
+  "food security",
+  "elections",
+  // industry
+  "mobility",
+  "manufacturing",
+  "media",
+  "education",
 ] as const;
 
 export function pickRecommendedTags(

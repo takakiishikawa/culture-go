@@ -449,7 +449,7 @@ function ThreeAnglesPanel({
             href={r.url}
             target="_blank"
             rel="noreferrer"
-            className="block py-4"
+            className="group/angle -mx-6 block px-6 py-4 transition-all duration-150 ease-out hover:bg-[#242424] active:scale-[0.99] active:bg-[#2a2a2a]"
             style={{ borderTop: i > 0 ? "1px solid #333" : "none" }}
           >
             <div
@@ -458,11 +458,11 @@ function ThreeAnglesPanel({
             >
               {r.kind}
             </div>
-            <div className="text-sm font-medium leading-[1.4] text-white">
+            <div className="text-sm font-medium leading-[1.4] text-white transition-colors group-hover/angle:text-white">
               {r.title}
             </div>
             {r.source && (
-              <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888]">
+              <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888] transition-colors group-hover/angle:text-[#bbb]">
                 {r.source}
               </div>
             )}
@@ -491,7 +491,7 @@ function ThreeAnglesPanel({
             href={r.url}
             target="_blank"
             rel="noreferrer"
-            className="block py-3"
+            className="group/angle -mx-3 block rounded-sm px-3 py-3 transition-all duration-150 ease-out hover:bg-[#242424] active:scale-[0.99] active:bg-[#2a2a2a]"
             style={{ borderTop: "1px solid #333" }}
           >
             <div
@@ -504,7 +504,7 @@ function ThreeAnglesPanel({
               {r.title}
             </div>
             {r.source && (
-              <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888]">
+              <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888] transition-colors group-hover/angle:text-[#bbb]">
                 {r.source}
               </div>
             )}
