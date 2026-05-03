@@ -33,12 +33,12 @@ export default async function ScoringRoute() {
 
   return (
     <main className="min-h-full bg-white text-[#1A1A1A]">
-      <div className="mx-auto max-w-4xl px-14 pt-8 pb-24">
-        <header className="flex items-baseline justify-between">
+      <div className="mx-auto max-w-4xl px-3 pt-8 pb-24 md:px-14">
+        <header className="flex items-baseline justify-between gap-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#999]">
             Scoring
           </p>
-          <p className="cg-num text-[11px] uppercase tracking-[0.18em] text-[#999]">
+          <p className="cg-num text-[10px] uppercase tracking-[0.18em] text-[#999] md:text-[11px]">
             threshold {SIGNIFICANCE_THRESHOLD} · Σw {weightSum.toFixed(2)}
           </p>
         </header>
@@ -51,7 +51,7 @@ export default async function ScoringRoute() {
 
         <div className="mt-12">
           <div
-            className="grid items-baseline gap-6 pb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-[#bbb]"
+            className="hidden items-baseline gap-6 pb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-[#bbb] md:grid"
             style={{ gridTemplateColumns: "32px 140px 1fr 60px" }}
           >
             <span>#</span>
@@ -62,22 +62,44 @@ export default async function ScoringRoute() {
           {dimensions.map((d, i) => (
             <div
               key={d.id}
-              className="grid items-baseline gap-6 border-t border-[#F0F0F0] py-5"
+              className="block border-t border-[#F0F0F0] py-5 md:grid md:items-baseline md:gap-6"
               style={{ gridTemplateColumns: "32px 140px 1fr 60px" }}
             >
-              <span className="cg-num text-[18px] font-light text-[#bbb]">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="text-[15px] font-medium text-[#1A1A1A]">
-                {d.label}
-              </span>
-              <div className="text-sm leading-6 text-[#1A1A1A]">
+              {/* Mobile: stacked layout with index/weight inline */}
+              <div className="flex items-baseline justify-between gap-3 md:hidden">
+                <span className="flex items-baseline gap-3">
+                  <span className="cg-num text-[16px] font-light text-[#bbb]">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-[15px] font-medium text-[#1A1A1A]">
+                    {d.label}
+                  </span>
+                </span>
+                <span className="cg-num text-[16px] font-light tracking-[-0.02em] text-[#1A1A1A]">
+                  w {d.weight.toFixed(2)}
+                </span>
+              </div>
+              <div className="mt-2 text-sm leading-6 text-[#1A1A1A] md:hidden">
                 <div>{d.description}</div>
                 <div className="mt-1.5 text-xs leading-6 text-[#888]">
                   {d.rubric}
                 </div>
               </div>
-              <span className="cg-num text-right text-[18px] font-light tracking-[-0.02em] text-[#1A1A1A]">
+
+              {/* Desktop: 4-column row */}
+              <span className="cg-num hidden text-[18px] font-light text-[#bbb] md:inline">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="hidden text-[15px] font-medium text-[#1A1A1A] md:inline">
+                {d.label}
+              </span>
+              <div className="hidden text-sm leading-6 text-[#1A1A1A] md:block">
+                <div>{d.description}</div>
+                <div className="mt-1.5 text-xs leading-6 text-[#888]">
+                  {d.rubric}
+                </div>
+              </div>
+              <span className="cg-num hidden text-right text-[18px] font-light tracking-[-0.02em] text-[#1A1A1A] md:inline">
                 {d.weight.toFixed(2)}
               </span>
             </div>

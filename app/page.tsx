@@ -194,7 +194,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-full bg-white text-[#1A1A1A]">
-      <header className="flex items-baseline justify-between px-14 pt-8">
+      <header className="flex items-baseline justify-between px-3 pt-8 md:px-14">
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#999]">
           This Week · {formatWeekLabel(latestWeekStart)}
         </p>

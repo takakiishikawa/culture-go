@@ -203,7 +203,7 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
   if (weeks.length === 0) return null;
 
   return (
-    <section className="px-16 pb-24">
+    <section className="px-3 pb-24 md:px-16">
       <div className="flex items-baseline gap-4 border-b border-[#1A1A1A] pb-7 pt-24">
         <span className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#1A1A1A]">
           Archive
@@ -238,22 +238,62 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => recordRead(card.id)}
-                className="grid items-center gap-6 py-4 pl-3"
+                className="block py-4 md:grid md:items-center md:gap-6 md:pl-3"
                 style={{
+                  // grid-template-columns は md:grid の時のみ有効。
+                  // mobile (display: block) では無視される。
                   gridTemplateColumns:
                     "100px 60px 1fr 200px 130px 24px 18px",
                   borderTop: isFirst ? "none" : "1px solid #F0F0F0",
                 }}
               >
-                <ScopeTag scope={card.scope} dim={isRead} />
+                {/* Mobile: stacked card layout */}
+                <div className="flex flex-col gap-2 md:hidden">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <ScopeTag scope={card.scope} dim={isRead} />
+                    <span
+                      className="cg-num text-[20px] font-light"
+                      style={{ color: titleColor, letterSpacing: "-0.03em" }}
+                    >
+                      {card.significance_score.toFixed(1)}
+                    </span>
+                  </div>
+                  <span
+                    className="text-[15px] font-medium leading-[1.35]"
+                    style={{ color: titleColor, letterSpacing: "-0.005em" }}
+                  >
+                    {card.title}
+                  </span>
+                  <KeywordRow items={card.keywords} color={keywordColor} />
+                  <div className="flex items-center justify-between gap-3 pt-1">
+                    <span className="flex flex-wrap gap-x-3 text-[10px] uppercase italic tracking-[0.16em] leading-[1.4] text-[#bbb]">
+                      {isRead && card.read_at && <span>read {card.read_at}</span>}
+                      {isDiscussed && card.discussed_at && (
+                        <span style={{ color: SCOPE_COLOR[card.scope], opacity: 0.65 }}>
+                          discussed {card.discussed_at}
+                        </span>
+                      )}
+                    </span>
+                    <RowDiscussButton
+                      card={card}
+                      isDiscussed={isDiscussed}
+                      onClick={() => recordDiscussed(card.id)}
+                    />
+                  </div>
+                </div>
+
+                {/* Desktop: original 7-column row */}
+                <span className="hidden md:inline">
+                  <ScopeTag scope={card.scope} dim={isRead} />
+                </span>
                 <span
-                  className="cg-num text-[22px] font-light"
+                  className="cg-num hidden text-[22px] font-light md:inline"
                   style={{ color: titleColor, letterSpacing: "-0.03em" }}
                 >
                   {card.significance_score.toFixed(1)}
                 </span>
                 <span
-                  className="text-base font-medium"
+                  className="hidden text-base font-medium md:inline"
                   style={{
                     color: titleColor,
                     letterSpacing: "-0.005em",
@@ -261,8 +301,10 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                 >
                   {card.title}
                 </span>
-                <KeywordRow items={card.keywords} color={keywordColor} />
-                <span className="flex flex-col text-[10px] uppercase italic tracking-[0.16em] leading-[1.4] text-[#bbb]">
+                <span className="hidden md:block">
+                  <KeywordRow items={card.keywords} color={keywordColor} />
+                </span>
+                <span className="hidden flex-col text-[10px] uppercase italic tracking-[0.16em] leading-[1.4] text-[#bbb] md:flex">
                   {isRead && card.read_at && <span>read {card.read_at}</span>}
                   {isDiscussed && card.discussed_at && (
                     <span style={{ color: SCOPE_COLOR[card.scope], opacity: 0.65 }}>
@@ -270,12 +312,14 @@ export function Archive({ weeks }: { weeks: ArchiveWeek[] }) {
                     </span>
                   )}
                 </span>
-                <RowDiscussButton
-                  card={card}
-                  isDiscussed={isDiscussed}
-                  onClick={() => recordDiscussed(card.id)}
-                />
-                <span className="text-base text-[#999]">→</span>
+                <span className="hidden md:block">
+                  <RowDiscussButton
+                    card={card}
+                    isDiscussed={isDiscussed}
+                    onClick={() => recordDiscussed(card.id)}
+                  />
+                </span>
+                <span className="hidden text-base text-[#999] md:inline">→</span>
               </a>
             );
           })}

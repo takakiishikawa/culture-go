@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "@takaki/go-design-system";
+import { toast, useIsMobile } from "@takaki/go-design-system";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import {
   generateRelatedForCard,
@@ -303,10 +303,23 @@ function CardChrome({
   const scopeColor = SCOPE_COLOR[card.scope];
   const claudeUrl = buildClaudePromptUrl(card);
   const big = size === "lg";
-  const imgHeight = big ? 553 : 221;
-  const titleSize = big ? 40 : 20;
-  const numSize = big ? 96 : 38;
-  const overlayPad = big ? "24px 28px" : "14px 16px";
+  const isMobile = useIsMobile();
+  const imgHeight = isMobile
+    ? big
+      ? 280
+      : 200
+    : big
+      ? 553
+      : 221;
+  const titleSize = isMobile ? (big ? 24 : 18) : big ? 40 : 20;
+  const numSize = isMobile ? (big ? 56 : 32) : big ? 96 : 38;
+  const overlayPad = isMobile
+    ? big
+      ? "16px 18px"
+      : "12px 14px"
+    : big
+      ? "24px 28px"
+      : "14px 16px";
   const dimColor = "rgba(255,255,255,0.6)";
   const titleColor = isRead ? dimColor : "#FFF";
   const scoreColor = isRead ? dimColor : "#FFF";
@@ -542,6 +555,9 @@ function HeroCard({
     () => ({ ...card, related }),
     [card, related],
   );
+  // モバイルでは絶対配置のサイドレールが画面外に出るので強制的に "below" に。
+  const isMobile = useIsMobile();
+  const effectivePlacement = isMobile ? "below" : railPlacement;
 
   const trigger = (
     <AnglesTrigger
@@ -569,7 +585,7 @@ function HeroCard({
       />
 
       {openRail && hasRelated && (
-        <ThreeAnglesPanel card={cardWithLocalRelated} layout={railPlacement} />
+        <ThreeAnglesPanel card={cardWithLocalRelated} layout={effectivePlacement} />
       )}
     </article>
   );
@@ -683,7 +699,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
   if (sorted.length === 1) {
     const c = sorted[0];
     return (
-      <section className="px-14 pt-7">
+      <section className="px-3 pt-7 md:px-14">
         <HeroCard
           card={c}
           isRead={readIds.has(c.id)}
@@ -699,7 +715,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
   // 2記事: LARGE × 2 を等幅で横並び。3 Angles は各カード下に展開
   if (sorted.length === 2) {
     return (
-      <section className="grid grid-cols-2 items-start gap-10 px-14 pt-7">
+      <section className="grid grid-cols-1 items-start gap-7 px-3 pt-7 md:grid-cols-2 md:gap-10 md:px-14">
         {sorted.map((c) => (
           <HeroCard
             key={c.id}
@@ -718,7 +734,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
   // 3記事: LARGE (左 1.2fr) + SMALL × 2 (右 1fr 縦積み)、3 Angles はサイドレール
   const [hero, ...rest] = sorted;
   return (
-    <section className="grid grid-cols-[1.2fr_1fr] gap-10 px-14 pt-7">
+    <section className="grid grid-cols-1 gap-7 px-3 pt-7 md:grid-cols-[1.2fr_1fr] md:gap-10 md:px-14">
       <div className="relative">
         <HeroCard
           card={hero}
@@ -728,7 +744,7 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
           onMarkDiscussed={() => recordDiscussed(hero.id)}
         />
       </div>
-      <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-7 md:gap-10">
         {rest.map((c) => (
           <SmallCard
             key={c.id}

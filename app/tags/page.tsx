@@ -17,7 +17,7 @@ export default async function TagsPage() {
   if (error) {
     return (
       <main className="min-h-full bg-white text-[#1A1A1A]">
-        <div className="mx-auto max-w-3xl px-14 pt-8 pb-24">
+        <div className="mx-auto max-w-3xl px-3 pt-8 pb-24 md:px-14">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#999]">
             Tags
           </p>

@@ -14,7 +14,7 @@ interface SectionProps {
 
 function Section({ eyebrow, title, description, action }: SectionProps) {
   return (
-    <section className="grid gap-10 py-10 md:grid-cols-[200px_1fr]">
+    <section className="grid gap-6 py-10 md:grid-cols-[200px_1fr] md:gap-10">
       <header className="space-y-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#999]">
           {eyebrow}
@@ -34,7 +34,7 @@ function Section({ eyebrow, title, description, action }: SectionProps) {
 export default function SettingsRoute() {
   return (
     <main className="min-h-full bg-white text-[#1A1A1A]">
-      <div className="mx-auto max-w-4xl px-14 pt-8 pb-24">
+      <div className="mx-auto max-w-4xl px-3 pt-8 pb-24 md:px-14">
         <header>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#999]">
             Settings
