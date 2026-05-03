@@ -1,6 +1,7 @@
 // 記事ページから写真を取りに行く（外部 API 不使用）。
 // 一次: og:image / twitter:image / itemprop=image を head から拾う（多くのニュース系の本命）
 // 二次: 拾えなかったら body 内の <img> を走査して最初の "意味のある" 画像を返す
+// 三次: それでもダメなら fetchUnsplashImage で英語キーワード検索（要 UNSPLASH_ACCESS_KEY）
 
 const ARTICLE_BYTES = 512 * 1024; // 500KB 読めば本文の最初の画像までは届く想定
 
@@ -160,5 +161,36 @@ function resolveUrl(src: string, baseUrl: string): string | null {
     return new URL(src, baseUrl).toString();
   } catch {
     return src.startsWith("http") ? src : null;
+  }
+}
+
+// ── Unsplash フォールバック ───────────────────────────────────────────
+// og:image と本文 img の両方が取れなかった時の代替画像。
+// 英語キーワード検索 (Unsplash API)。固有名詞より象徴語が向く。
+// UNSPLASH_ACCESS_KEY が無ければ静かに null を返す。
+export async function fetchUnsplashImage(
+  query: string,
+  timeoutMs = 8000,
+): Promise<string | null> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key || !query.trim()) return null;
+
+  try {
+    const url =
+      "https://api.unsplash.com/search/photos" +
+      `?query=${encodeURIComponent(query)}` +
+      "&per_page=1&orientation=landscape&content_filter=high";
+    const res = await fetch(url, {
+      headers: { Authorization: `Client-ID ${key}` },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      results?: Array<{ urls?: { regular?: string; full?: string } }>;
+    };
+    const photo = data.results?.[0]?.urls;
+    return photo?.regular ?? photo?.full ?? null;
+  } catch {
+    return null;
   }
 }

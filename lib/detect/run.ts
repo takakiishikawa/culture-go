@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { CulturegoClient } from "@/lib/supabase/types";
-import { fetchOgImage } from "./extract-image";
+import { fetchOgImage, fetchUnsplashImage } from "./extract-image";
+import { isPaywallUrl, PAYWALL_HINT_FOR_PROMPT } from "./paywall-domains";
 import {
   SIGNIFICANCE_THRESHOLD,
   computeSignificance,
@@ -17,6 +18,7 @@ interface Candidate {
   keywords?: string[];
   tags?: string[];
   related_articles?: { title: string; url: string }[];
+  image_query?: string; // Unsplash フォールバック用 (英語 2-4 語)
   scores: Record<string, number>; // dim_1, dim_2, ...
   published_at?: string;
 }
@@ -89,6 +91,11 @@ ${dimensionDescriptions}
 
 特に "構造的変化"（力学が変わるか）の評価を厳格に行うこと。これがこのメディアの核です。
 
+ソース選定の制約（重要）:
+- ペイウォール / 部分閲覧専用の主要サイト (${PAYWALL_HINT_FOR_PROMPT} 等) を一次ソースに置かない。本文が読者に閲覧できないため。
+- 優先順位: 一次ソース (政府発表 / 企業 IR / 学術論文 / 公式 PR) → 無料公開のニュース通信社 (Reuters, AP, BBC, NHK, 朝日 通常記事, AFP) → 信頼性の高い解説媒体の無料記事。
+- 同じ事象を扱う複数ソースがある場合、ペイウォール無しを選ぶこと。
+
 ユーザーの興味タグ（このタグに合致するものを優先するが、これらに限らず本当に大きい出来事は含める）: ${tagNames.join("、") || "（未設定）"}`;
 
   const userPrompt = `直近 ${lookback} 日の世界・日本・ベトナムから、世界の進む方向を変えうる構造シフトを最大 ${cfg.maxCandidates} 件まで挙げ、各候補に ${dimensions.length} 軸スコアを付けて submit_candidates ツールで提出してください。
@@ -101,6 +108,7 @@ ${dimensionDescriptions}
 - scope: world / japan / vietnam
 - keywords: 5–10 の検索可能キーワード
 - tags: ユーザータグから合致するもの（無くてよい）
+- image_query: 英語 2–4 語の象徴的キーワード (記事に画像が無かった時の代替写真検索用)。固有名詞より象徴語: 例 "federal reserve building", "tokyo diet chamber", "hanoi street market", "semiconductor wafer", "container ship port"
 - scores: ${dimensions.map((_, i) => `dim_${i + 1}`).join(", ")} を 0–10 で
 - published_at: 出来事の発生日 (ISO8601)`;
 
@@ -163,6 +171,11 @@ ${dimensionDescriptions}
                     required: ["title", "url"],
                   },
                 },
+                image_query: {
+                  type: "string",
+                  description:
+                    "英語 2-4 語の象徴的キーワード。og:image が無い時の Unsplash 検索用 (例: 'federal reserve building', 'container ship port')",
+                },
                 scores: {
                   type: "object",
                   properties: scoresProperties,
@@ -212,8 +225,23 @@ ${dimensionDescriptions}
     throw new Error("検出ツールの呼び出しが返されませんでした");
   }
 
-  const candidates = (submission.input as { candidates: Candidate[] })
+  const rawCandidates = (submission.input as { candidates: Candidate[] })
     .candidates;
+
+  // ペイウォール一次ソースを後段でも防御 (Claude のミス保険)。
+  // source_urls から paywall を除外、結果として空になる候補は drop。
+  const candidates: Candidate[] = [];
+  let droppedPaywall = 0;
+  for (const c of rawCandidates) {
+    const filteredUrls = (c.source_urls ?? []).filter(
+      (u) => !isPaywallUrl(u),
+    );
+    if (filteredUrls.length === 0) {
+      droppedPaywall += 1;
+      continue;
+    }
+    candidates.push({ ...c, source_urls: filteredUrls });
+  }
 
   const summary: DetectionSummary = {
     candidatesGenerated: candidates.length,
@@ -222,17 +250,34 @@ ${dimensionDescriptions}
     insertedCardIds: [],
     errors: [],
   };
+  if (droppedPaywall > 0) {
+    summary.errors.push(
+      `dropped ${droppedPaywall} paywall-only candidate(s) post-filter`,
+    );
+  }
 
   const { data: allTags } = await sb.from("tags").select("id, name");
   const tagIdByName = new Map(
     (allTags ?? []).map((t) => [t.name, t.id as string]),
   );
 
-  // og:image を並列で取得（候補ごと、5s タイムアウト）
-  const heroImages = await Promise.all(
+  // 画像取得: og:image を並列で先取り。null だった候補は次フェーズで Unsplash フォールバック。
+  const ogImages = await Promise.all(
     candidates.map((c) =>
-      c.source_urls?.[0] ? fetchOgImage(c.source_urls[0]) : Promise.resolve(null),
+      c.source_urls?.[0]
+        ? fetchOgImage(c.source_urls[0])
+        : Promise.resolve(null),
     ),
+  );
+
+  // og:image 失敗候補の Unsplash フォールバックも並列化。
+  const heroImages = await Promise.all(
+    candidates.map(async (c, i) => {
+      if (ogImages[i]) return ogImages[i];
+      const query = c.image_query?.trim();
+      if (!query) return null;
+      return await fetchUnsplashImage(query);
+    }),
   );
 
   for (let i = 0; i < candidates.length; i++) {

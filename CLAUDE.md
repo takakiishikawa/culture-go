@@ -77,9 +77,13 @@ SUPABASE_SERVICE_ROLE_KEY=<service role key>
 
 # Anthropic API（大きな出来事の検出）
 ANTHROPIC_API_KEY=<api key>
+
+# Unsplash (任意): og:image が取れなかった候補に対して英語キーワードで
+# 写真を取りに行くフォールバック。未設定なら何もしない（カードは画像なしで挿入）。
+UNSPLASH_ACCESS_KEY=<access key>
 ```
 
-GitHub Actions Secrets には `ANTHROPIC_API_KEY` / `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` を設定。
+GitHub Actions Secrets には `ANTHROPIC_API_KEY` / `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` を設定。`UNSPLASH_ACCESS_KEY` は任意（あればフォールバック画像が取れる）。
 
 ## 重要なルール
 
