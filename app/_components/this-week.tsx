@@ -293,6 +293,106 @@ function CardChrome({
   );
 }
 
+function ThreeAnglesPanel({
+  card,
+  layout,
+}: {
+  card: ThisWeekCardData;
+  layout: "side" | "below";
+}) {
+  const items = card.related.filter((r): r is RelatedArticle =>
+    Boolean(r?.kind && r?.title && r?.url),
+  );
+  const accent = SCOPE_COLOR[card.scope] === "#1A2B4A" ? "#8AA4D8" : "#D08080";
+
+  if (layout === "side") {
+    return (
+      <aside
+        className="absolute top-0 z-10 w-[320px] px-6 py-5 text-white"
+        style={{
+          right: -340,
+          background: "#1A1A1A",
+          animation: "cg-fade 240ms ease",
+        }}
+      >
+        <div
+          className="mb-[18px] text-[10px] font-bold uppercase tracking-[0.32em]"
+          style={{ color: "#999" }}
+        >
+          3 Angles · AI
+        </div>
+        {items.map((r, i) => (
+          <a
+            key={`${r.kind}-${i}`}
+            href={r.url}
+            target="_blank"
+            rel="noreferrer"
+            className="block py-4"
+            style={{ borderTop: i > 0 ? "1px solid #333" : "none" }}
+          >
+            <div
+              className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.32em]"
+              style={{ color: accent }}
+            >
+              {r.kind}
+            </div>
+            <div className="text-sm font-medium leading-[1.4] text-white">
+              {r.title}
+            </div>
+            {r.source && (
+              <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888]">
+                {r.source}
+              </div>
+            )}
+          </a>
+        ))}
+      </aside>
+    );
+  }
+
+  // "below" layout (1/2記事モード用): カード幅にフィットする 3 列パネル
+  return (
+    <div
+      className="mt-3 px-6 py-5 text-white"
+      style={{ background: "#1A1A1A", animation: "cg-fade 240ms ease" }}
+    >
+      <div
+        className="mb-[14px] text-[10px] font-bold uppercase tracking-[0.32em]"
+        style={{ color: "#999" }}
+      >
+        3 Angles · AI
+      </div>
+      <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-3">
+        {items.map((r, i) => (
+          <a
+            key={`${r.kind}-${i}`}
+            href={r.url}
+            target="_blank"
+            rel="noreferrer"
+            className="block py-3"
+            style={{ borderTop: "1px solid #333" }}
+          >
+            <div
+              className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.32em]"
+              style={{ color: accent }}
+            >
+              {r.kind}
+            </div>
+            <div className="text-sm font-medium leading-[1.4] text-white">
+              {r.title}
+            </div>
+            {r.source && (
+              <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888]">
+                {r.source}
+              </div>
+            )}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HeroCard({
   card,
   isRead,
@@ -301,6 +401,7 @@ function HeroCard({
   discussedAt,
   onMarkRead,
   onMarkDiscussed,
+  railPlacement = "side",
 }: {
   card: ThisWeekCardData;
   isRead: boolean;
@@ -309,6 +410,7 @@ function HeroCard({
   discussedAt: string | null;
   onMarkRead: () => void;
   onMarkDiscussed: () => void;
+  railPlacement?: "side" | "below";
 }) {
   const [openRail, setOpenRail] = useState(false);
   const hasRelated = card.related.length > 0;
@@ -343,59 +445,8 @@ function HeroCard({
         rightSlot={trigger}
       />
 
-      {/* S3 side rail (画像の <a> とは独立) */}
       {openRail && hasRelated && (
-        <aside
-          className="absolute top-0 z-10 w-[320px] px-6 py-5 text-white"
-          style={{
-            right: -340,
-            background: "#1A1A1A",
-            animation: "cg-fade 240ms ease",
-          }}
-        >
-          <div
-            className="mb-[18px] text-[10px] font-bold uppercase tracking-[0.32em]"
-            style={{ color: "#999" }}
-          >
-            3 Angles · AI
-          </div>
-          {card.related
-            .filter((r): r is RelatedArticle =>
-              Boolean(r?.kind && r?.title && r?.url),
-            )
-            .map((r, i) => (
-              <a
-                key={`${r.kind}-${i}`}
-                href={r.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block py-4"
-                style={{
-                  borderTop: i > 0 ? "1px solid #333" : "none",
-                }}
-              >
-                <div
-                  className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.32em]"
-                  style={{
-                    color:
-                      SCOPE_COLOR[card.scope] === "#1A2B4A"
-                        ? "#8AA4D8"
-                        : "#D08080",
-                  }}
-                >
-                  {r.kind}
-                </div>
-                <div className="text-sm font-medium leading-[1.4] text-white">
-                  {r.title}
-                </div>
-                {r.source && (
-                  <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[#888]">
-                    {r.source}
-                  </div>
-                )}
-              </a>
-            ))}
-        </aside>
+        <ThreeAnglesPanel card={card} layout={railPlacement} />
       )}
     </article>
   );
@@ -418,6 +469,24 @@ function SmallCard({
   onMarkRead: () => void;
   onMarkDiscussed: () => void;
 }) {
+  const [openRail, setOpenRail] = useState(false);
+  const hasRelated = card.related.length > 0;
+
+  const trigger = hasRelated ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setOpenRail((v) => !v);
+      }}
+      className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-[#1A1A1A]"
+    >
+      <span className="block h-px w-3.5 bg-[#1A1A1A]" />
+      3 Angles {openRail ? "↑" : "↓"}
+    </button>
+  ) : null;
+
   return (
     <article className="relative flex h-full flex-col">
       <CardChrome
@@ -429,42 +498,11 @@ function SmallCard({
         discussedAt={discussedAt}
         onDiscussClick={onMarkDiscussed}
         onImageClick={onMarkRead}
+        rightSlot={trigger}
       />
-    </article>
-  );
-}
-
-// 1記事 / 2記事 モード用: LARGE サイズだが 3 Angles サイドレールを持たない。
-// (1記事は外側スペース無し、2記事は隣にレイル展開する空間が無いため)
-function FlatLargeCard({
-  card,
-  isRead,
-  readAt,
-  isDiscussed,
-  discussedAt,
-  onMarkRead,
-  onMarkDiscussed,
-}: {
-  card: ThisWeekCardData;
-  isRead: boolean;
-  readAt: string | null;
-  isDiscussed: boolean;
-  discussedAt: string | null;
-  onMarkRead: () => void;
-  onMarkDiscussed: () => void;
-}) {
-  return (
-    <article className="relative flex h-full flex-col">
-      <CardChrome
-        card={card}
-        size="lg"
-        isRead={isRead}
-        readAt={readAt}
-        isDiscussed={isDiscussed}
-        discussedAt={discussedAt}
-        onDiscussClick={onMarkDiscussed}
-        onImageClick={onMarkRead}
-      />
+      {openRail && hasRelated && (
+        <ThreeAnglesPanel card={card} layout="below" />
+      )}
     </article>
   );
 }
@@ -514,12 +552,12 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
     (a, b) => b.significance_score - a.significance_score,
   );
 
-  // 1記事: フルワイド LARGE。3 Angles オフ
+  // 1記事: フルワイド LARGE。3 Angles はカード下に展開
   if (sorted.length === 1) {
     const c = sorted[0];
     return (
       <section className="px-14 pt-7">
-        <FlatLargeCard
+        <HeroCard
           card={c}
           isRead={readIds.has(c.id)}
           readAt={c.read_at}
@@ -527,17 +565,18 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
           discussedAt={c.discussed_at}
           onMarkRead={() => recordRead(c.id)}
           onMarkDiscussed={() => recordDiscussed(c.id)}
+          railPlacement="below"
         />
       </section>
     );
   }
 
-  // 2記事: LARGE × 2 を等幅で横並び。3 Angles オフ
+  // 2記事: LARGE × 2 を等幅で横並び。3 Angles は各カード下に展開
   if (sorted.length === 2) {
     return (
-      <section className="grid grid-cols-2 gap-10 px-14 pt-7">
+      <section className="grid grid-cols-2 items-start gap-10 px-14 pt-7">
         {sorted.map((c) => (
-          <FlatLargeCard
+          <HeroCard
             key={c.id}
             card={c}
             isRead={readIds.has(c.id)}
@@ -546,13 +585,14 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
             discussedAt={c.discussed_at}
             onMarkRead={() => recordRead(c.id)}
             onMarkDiscussed={() => recordDiscussed(c.id)}
+            railPlacement="below"
           />
         ))}
       </section>
     );
   }
 
-  // 3記事: LARGE (左 1.2fr) + SMALL × 2 (右 1fr 縦積み)、3 Angles 付き
+  // 3記事: LARGE (左 1.2fr) + SMALL × 2 (右 1fr 縦積み)、3 Angles はサイドレール
   const [hero, ...rest] = sorted;
   return (
     <section className="grid grid-cols-[1.2fr_1fr] gap-10 px-14 pt-7">
