@@ -9,9 +9,12 @@ export async function markCardRead(cardId: string): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) {
+    console.warn("[markCardRead] no auth user — skipping");
+    return;
+  }
 
-  await supabase.from("card_metadata").upsert(
+  const { error } = await supabase.from("card_metadata").upsert(
     {
       card_id: cardId,
       is_read: true,
@@ -19,6 +22,7 @@ export async function markCardRead(cardId: string): Promise<void> {
     },
     { onConflict: "card_id" },
   );
+  if (error) console.error("[markCardRead] upsert failed:", error);
 }
 
 export async function markCardDiscussed(cardId: string): Promise<void> {
@@ -26,10 +30,13 @@ export async function markCardDiscussed(cardId: string): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) {
+    console.warn("[markCardDiscussed] no auth user — skipping");
+    return;
+  }
 
   const now = new Date().toISOString();
-  await supabase.from("card_metadata").upsert(
+  const { error } = await supabase.from("card_metadata").upsert(
     {
       card_id: cardId,
       is_read: true,
@@ -38,6 +45,7 @@ export async function markCardDiscussed(cardId: string): Promise<void> {
     },
     { onConflict: "card_id" },
   );
+  if (error) console.error("[markCardDiscussed] upsert failed:", error);
 }
 
 export type BackfillResult =

@@ -162,7 +162,7 @@ function CardChrome({
   const scopeColor = SCOPE_COLOR[card.scope];
   const claudeUrl = buildClaudePromptUrl(card);
   const big = size === "lg";
-  const imgHeight = big ? 600 : 240;
+  const imgHeight = big ? 570 : 228;
   const titleSize = big ? 40 : 20;
   const numSize = big ? 96 : 38;
   const overlayPad = big ? "24px 28px" : "14px 16px";
@@ -431,6 +431,41 @@ function SmallCard({
   );
 }
 
+// 1記事 / 2記事 モード用: LARGE サイズだが 3 Angles サイドレールを持たない。
+// (1記事は外側スペース無し、2記事は隣にレイル展開する空間が無いため)
+function FlatLargeCard({
+  card,
+  isRead,
+  readAt,
+  isDiscussed,
+  discussedAt,
+  onMarkRead,
+  onMarkDiscussed,
+}: {
+  card: ThisWeekCardData;
+  isRead: boolean;
+  readAt: string | null;
+  isDiscussed: boolean;
+  discussedAt: string | null;
+  onMarkRead: () => void;
+  onMarkDiscussed: () => void;
+}) {
+  return (
+    <article className="relative flex h-full flex-col">
+      <CardChrome
+        card={card}
+        size="lg"
+        isRead={isRead}
+        readAt={readAt}
+        isDiscussed={isDiscussed}
+        discussedAt={discussedAt}
+        onDiscussClick={onMarkDiscussed}
+        onImageClick={onMarkRead}
+      />
+    </article>
+  );
+}
+
 export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(cards.filter((c) => c.is_read).map((c) => c.id)),
@@ -475,8 +510,47 @@ export function ThisWeek({ cards }: { cards: ThisWeekCardData[] }) {
   const sorted = [...cards].sort(
     (a, b) => b.significance_score - a.significance_score,
   );
-  const [hero, ...rest] = sorted;
 
+  // 1記事: フルワイド LARGE。3 Angles オフ
+  if (sorted.length === 1) {
+    const c = sorted[0];
+    return (
+      <section className="px-14 pt-7">
+        <FlatLargeCard
+          card={c}
+          isRead={readIds.has(c.id)}
+          readAt={c.read_at}
+          isDiscussed={discussedIds.has(c.id)}
+          discussedAt={c.discussed_at}
+          onMarkRead={() => recordRead(c.id)}
+          onMarkDiscussed={() => recordDiscussed(c.id)}
+        />
+      </section>
+    );
+  }
+
+  // 2記事: LARGE × 2 を等幅で横並び。3 Angles オフ
+  if (sorted.length === 2) {
+    return (
+      <section className="grid grid-cols-2 gap-10 px-14 pt-7">
+        {sorted.map((c) => (
+          <FlatLargeCard
+            key={c.id}
+            card={c}
+            isRead={readIds.has(c.id)}
+            readAt={c.read_at}
+            isDiscussed={discussedIds.has(c.id)}
+            discussedAt={c.discussed_at}
+            onMarkRead={() => recordRead(c.id)}
+            onMarkDiscussed={() => recordDiscussed(c.id)}
+          />
+        ))}
+      </section>
+    );
+  }
+
+  // 3記事: LARGE (左 1.2fr) + SMALL × 2 (右 1fr 縦積み)、3 Angles 付き
+  const [hero, ...rest] = sorted;
   return (
     <section className="grid grid-cols-[1.2fr_1fr] gap-10 px-14 pt-7">
       <div className="relative">
