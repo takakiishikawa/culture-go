@@ -132,7 +132,11 @@ function CardChrome({
   const dimColor = "rgba(255,255,255,0.6)";
   const titleColor = isRead ? dimColor : "#FFF";
   const scoreColor = isRead ? dimColor : "#FFF";
+  const scopeOpacity = isRead ? 0.5 : 0.85;
   const imgFilter = isRead ? "saturate(0.5)" : "none";
+  // 画像なし時の scope 色ブロックは saturate(0.5) ではほぼ変化しないので
+  // opacity で別途 dim する。
+  const fallbackOpacity = isRead ? 0.55 : 1;
   const [imgError, setImgError] = useState(false);
   const showImg = card.hero_image_url && !imgError;
 
@@ -153,7 +157,11 @@ function CardChrome({
         ) : (
           <div
             className="w-full transition-transform duration-500 ease-out group-hover:scale-[1.02]"
-            style={{ height: imgHeight, background: scopeColor, filter: imgFilter }}
+            style={{
+              height: imgHeight,
+              background: scopeColor,
+              opacity: fallbackOpacity,
+            }}
           />
         )}
         <div
@@ -171,11 +179,12 @@ function CardChrome({
           <div className="flex items-end justify-between gap-4">
             <div>
               <div
-                className="font-bold uppercase opacity-85"
+                className="font-bold uppercase"
                 style={{
                   fontSize: big ? 11 : 10,
                   letterSpacing: "0.32em",
                   marginBottom: big ? 12 : 6,
+                  opacity: scopeOpacity,
                 }}
               >
                 {SCOPE_LABEL[card.scope]}
