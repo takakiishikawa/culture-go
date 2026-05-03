@@ -98,22 +98,3 @@ export async function deleteTag(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function reorderTags(orderedIds: string[]): Promise<ActionResult> {
-  const auth = await requireAuthedClient();
-  if (!auth.ok) return auth;
-
-  const results = await Promise.all(
-    orderedIds.map((id, index) =>
-      auth.supabase
-        .from("tags")
-        .update({ display_order: (index + 1) * 10 })
-        .eq("id", id),
-    ),
-  );
-
-  const failure = results.find((r) => r.error);
-  if (failure?.error) return { ok: false, error: parseDbError(failure.error) };
-
-  revalidatePath("/tags");
-  return { ok: true };
-}

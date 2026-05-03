@@ -2,7 +2,7 @@ import { RunDetectionButton } from "./run-detection";
 import { BackfillImagesButton } from "./backfill-images";
 
 export const metadata = {
-  title: "設定 — culturego",
+  title: "Settings — culturego",
 };
 
 interface SectionProps {
@@ -14,12 +14,12 @@ interface SectionProps {
 
 function Section({ eyebrow, title, description, action }: SectionProps) {
   return (
-    <section className="grid gap-10 py-10 md:grid-cols-[220px_1fr]">
+    <section className="grid gap-10 py-10 md:grid-cols-[200px_1fr]">
       <header className="space-y-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#999]">
           {eyebrow}
         </p>
-        <h2 className="text-xl font-semibold leading-snug tracking-[-0.01em] text-[#1A1A1A]">
+        <h2 className="text-base font-semibold tracking-[-0.005em] text-[#1A1A1A]">
           {title}
         </h2>
       </header>
@@ -33,18 +33,15 @@ function Section({ eyebrow, title, description, action }: SectionProps) {
 
 export default function SettingsRoute() {
   return (
-    <main className="min-h-full bg-white px-14 pt-8 pb-24 text-[#1A1A1A]">
-      <div className="mx-auto max-w-4xl">
-        <header className="border-b border-[#1A1A1A] pb-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#999]">
-            settings
+    <main className="min-h-full bg-white text-[#1A1A1A]">
+      <div className="mx-auto max-w-4xl px-14 pt-8 pb-24">
+        <header>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#999]">
+            Settings
           </p>
-          <h1 className="mt-3 text-[32px] font-semibold leading-[1.12] tracking-[-0.018em]">
-            設定
-          </h1>
         </header>
 
-        <div className="divide-y divide-[#F0F0F0]">
+        <div className="mt-6 divide-y divide-[#F0F0F0]">
           <Section
             eyebrow="manual run"
             title="検出を手動で実行"

@@ -6,7 +6,7 @@ import {
 } from "@/lib/detect/dimensions";
 
 export const metadata = {
-  title: "スコアリング — culturego",
+  title: "Scoring — culturego",
 };
 
 export default async function ScoringRoute() {
@@ -32,27 +32,27 @@ export default async function ScoringRoute() {
   const weightSum = dimensions.reduce((s, d) => s + d.weight, 0);
 
   return (
-    <main className="min-h-full bg-white px-14 pt-8 pb-24 text-[#1A1A1A]">
-      <div className="mx-auto max-w-4xl">
-        <header className="border-b border-[#1A1A1A] pb-6">
-          <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#999]">
-            scoring
+    <main className="min-h-full bg-white text-[#1A1A1A]">
+      <div className="mx-auto max-w-4xl px-14 pt-8 pb-24">
+        <header className="flex items-baseline justify-between">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#999]">
+            Scoring
           </p>
-          <h1 className="mt-3 text-[32px] font-semibold leading-[1.12] tracking-[-0.018em]">
-            構造シフトのスコアリング
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[#666]">
-            重み付き総合スコア = Σ(各軸 × 重み)。
-            <span className="cg-num"> {SIGNIFICANCE_THRESHOLD} </span>
-            未満は配信しない。重み合計
-            <span className="cg-num"> {weightSum.toFixed(2)}</span>。
+          <p className="cg-num text-[11px] uppercase tracking-[0.18em] text-[#999]">
+            threshold {SIGNIFICANCE_THRESHOLD} · Σw {weightSum.toFixed(2)}
           </p>
         </header>
 
-        <div className="mt-10">
+        <p className="mt-4 max-w-2xl text-sm leading-7 text-[#666]">
+          重み付き総合スコア = Σ(各軸 × 重み)。
+          <span className="cg-num"> {SIGNIFICANCE_THRESHOLD}</span>{" "}
+          未満は配信しない。
+        </p>
+
+        <div className="mt-12">
           <div
-            className="grid items-baseline gap-6 border-b border-[#1A1A1A] pb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-[#999]"
-            style={{ gridTemplateColumns: "40px 140px 1fr 60px" }}
+            className="grid items-baseline gap-6 pb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-[#bbb]"
+            style={{ gridTemplateColumns: "32px 140px 1fr 60px" }}
           >
             <span>#</span>
             <span>軸</span>
@@ -62,11 +62,8 @@ export default async function ScoringRoute() {
           {dimensions.map((d, i) => (
             <div
               key={d.id}
-              className="grid items-baseline gap-6 py-5"
-              style={{
-                gridTemplateColumns: "40px 140px 1fr 60px",
-                borderTop: i === 0 ? "none" : "1px solid #F0F0F0",
-              }}
+              className="grid items-baseline gap-6 border-t border-[#F0F0F0] py-5"
+              style={{ gridTemplateColumns: "32px 140px 1fr 60px" }}
             >
               <span className="cg-num text-[18px] font-light text-[#bbb]">
                 {String(i + 1).padStart(2, "0")}
