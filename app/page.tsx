@@ -22,13 +22,20 @@ interface RawCard {
   significance_score: number;
   published_at: string;
   related_articles: RelatedArticle[] | null;
+  // card_metadata.card_id は PK で cards.id の FK → PostgREST はこれを 1-to-1
+  // と判定し、配列ではなく単一オブジェクト or null を返す。supabase-js の型
+  // 推論が無いので両形式を許容しておく(将来的に Database 型を生成したら整理)。
   card_metadata:
-    | {
-        is_read: boolean | null;
-        updated_at: string | null;
-        discussed_at: string | null;
-      }[]
+    | { is_read: boolean | null; updated_at: string | null; discussed_at: string | null }
+    | { is_read: boolean | null; updated_at: string | null; discussed_at: string | null }[]
     | null;
+}
+
+function pickMeta(c: RawCard) {
+  const m = c.card_metadata;
+  if (!m) return null;
+  if (Array.isArray(m)) return m[0] ?? null;
+  return m;
 }
 
 // 週バケット: ICT (UTC+7) の Mon-Sun 切り。
@@ -76,7 +83,7 @@ function formatWeekLabel(weekStart: Date): string {
 }
 
 function toThisWeek(c: RawCard): ThisWeekCardData {
-  const meta = c.card_metadata?.[0];
+  const meta = pickMeta(c);
   const isRead = meta?.is_read === true;
   const isDiscussed = !!meta?.discussed_at;
   return {
@@ -98,7 +105,7 @@ function toThisWeek(c: RawCard): ThisWeekCardData {
 }
 
 function toArchive(c: RawCard): ArchiveCardData {
-  const meta = c.card_metadata?.[0];
+  const meta = pickMeta(c);
   const isRead = meta?.is_read === true;
   const isDiscussed = !!meta?.discussed_at;
   return {
