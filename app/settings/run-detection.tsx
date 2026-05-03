@@ -36,6 +36,7 @@ export function RunDetectionButton() {
               candidatesGenerated: number;
               inserted: number;
               skippedBelowThreshold: number;
+              skippedOverWeeklyCap: number;
               errors: string[];
             };
           }
@@ -47,7 +48,7 @@ export function RunDetectionButton() {
       }
       const s = data.summary;
       toast.success(
-        `検出完了 (${elapsed}s): ${s.inserted} 件登録 / ${s.candidatesGenerated} 候補生成 / 閾値未満 ${s.skippedBelowThreshold} 件`,
+        `検出完了 (${elapsed}s): ${s.inserted} 件登録 / 候補 ${s.candidatesGenerated} / 閾値未満 ${s.skippedBelowThreshold} / 週次キャップ超え ${s.skippedOverWeeklyCap}`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "ネットワークエラー";

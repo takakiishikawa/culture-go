@@ -27,9 +27,13 @@ export interface DetectionSummary {
   candidatesGenerated: number;
   inserted: number;
   skippedBelowThreshold: number;
+  skippedOverWeeklyCap: number;
   insertedCardIds: string[];
   errors: string[];
 }
+
+// editorial 哲学: 週に最大 3 件まで。瑣末を増やさない。
+const WEEKLY_INSERT_CAP = 3;
 
 /**
  * mode:
@@ -247,6 +251,7 @@ ${dimensionDescriptions}
     candidatesGenerated: candidates.length,
     inserted: 0,
     skippedBelowThreshold: 0,
+    skippedOverWeeklyCap: 0,
     insertedCardIds: [],
     errors: [],
   };
@@ -261,32 +266,48 @@ ${dimensionDescriptions}
     (allTags ?? []).map((t) => [t.name, t.id as string]),
   );
 
-  // 画像取得: og:image を並列で先取り。null だった候補は次フェーズで Unsplash フォールバック。
+  // 候補ごとに significance を計算し、閾値通過分だけを取り出す。
+  type Scored = { candidate: Candidate; score: number; index: number };
+  const scored: Scored[] = candidates.map((c, i) => ({
+    candidate: c,
+    score: computeSignificance(dimensions, c.scores),
+    index: i,
+  }));
+
+  const passing: Scored[] = [];
+  for (const s of scored) {
+    if (s.score < SIGNIFICANCE_THRESHOLD) {
+      summary.skippedBelowThreshold += 1;
+      continue;
+    }
+    passing.push(s);
+  }
+
+  // 週次キャップ: 通過分を significance 降順で上位 N 件のみ insert 対象に。
+  passing.sort((a, b) => b.score - a.score);
+  const insertTargets = passing.slice(0, WEEKLY_INSERT_CAP);
+  summary.skippedOverWeeklyCap = passing.length - insertTargets.length;
+
+  // 画像取得: insert 対象の候補についてのみ og:image → Unsplash フォールバック。
+  // (drop する分の HTTP / Unsplash クォータを無駄にしない)
   const ogImages = await Promise.all(
-    candidates.map((c) =>
-      c.source_urls?.[0]
-        ? fetchOgImage(c.source_urls[0])
+    insertTargets.map((s) =>
+      s.candidate.source_urls?.[0]
+        ? fetchOgImage(s.candidate.source_urls[0])
         : Promise.resolve(null),
     ),
   );
-
-  // og:image 失敗候補の Unsplash フォールバックも並列化。
   const heroImages = await Promise.all(
-    candidates.map(async (c, i) => {
+    insertTargets.map(async (s, i) => {
       if (ogImages[i]) return ogImages[i];
-      const query = c.image_query?.trim();
+      const query = s.candidate.image_query?.trim();
       if (!query) return null;
       return await fetchUnsplashImage(query);
     }),
   );
 
-  for (let i = 0; i < candidates.length; i++) {
-    const c = candidates[i];
-    const score = computeSignificance(dimensions, c.scores);
-    if (score < SIGNIFICANCE_THRESHOLD) {
-      summary.skippedBelowThreshold += 1;
-      continue;
-    }
+  for (let i = 0; i < insertTargets.length; i++) {
+    const { candidate: c, score } = insertTargets[i];
 
     const { data: card, error } = await sb
       .from("cards")
