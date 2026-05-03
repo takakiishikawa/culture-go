@@ -27,13 +27,24 @@ interface RawCard {
     | null;
 }
 
-function startOfWeekUTC(d: Date): Date {
-  // Sunday-start week (matches the土曜深夜配信 cadence — 土曜→日曜境界)
-  const start = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+// 週バケット: ICT (UTC+7) の Mon-Sun 切り。
+// 配信 cron が日曜 02:00 ICT に発火 = 月曜始まりの新週直前にその週分をまとめて
+// publish するセマンティクス。返り値は Monday 00:00 ICT 相当を UTC date 部に持つ Date
+// (= Date.UTC(Y, M, D) where Y/M/D は ICT カレンダー上の月曜)。
+function startOfWeekICT(d: Date): Date {
+  const ictMs = d.getTime() + 7 * 60 * 60 * 1000;
+  const ict = new Date(ictMs);
+  const ictDow = ict.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysBack = ictDow === 0 ? 6 : ictDow - 1;
+  const mondayMs = ictMs - daysBack * 86_400_000;
+  const monday = new Date(mondayMs);
+  return new Date(
+    Date.UTC(
+      monday.getUTCFullYear(),
+      monday.getUTCMonth(),
+      monday.getUTCDate(),
+    ),
   );
-  start.setUTCDate(start.getUTCDate() - start.getUTCDay());
-  return start;
 }
 
 function formatRelative(iso: string): string {
@@ -50,10 +61,13 @@ function formatRelative(iso: string): string {
 }
 
 function formatWeekLabel(weekStart: Date): string {
+  // weekStart は UTC date 部に ICT の月曜カレンダー値を持たせている。
+  // 表示も UTC で読めば ICT 月曜の日付がそのまま出る。
   return weekStart.toLocaleDateString("en-US", {
     month: "long",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -129,7 +143,7 @@ export default async function HomePage() {
   }
 
   const THIS_WEEK_LIMIT = 3;
-  const latestWeekStart = startOfWeekUTC(new Date(cards[0].published_at));
+  const latestWeekStart = startOfWeekICT(new Date(cards[0].published_at));
   const inLatestWeek: RawCard[] = [];
   const olderCards: RawCard[] = [];
   for (const c of cards) {
@@ -148,7 +162,7 @@ export default async function HomePage() {
 
   const pastByWeek = new Map<string, RawCard[]>();
   for (const c of pastCards) {
-    const w = startOfWeekUTC(new Date(c.published_at)).toISOString();
+    const w = startOfWeekICT(new Date(c.published_at)).toISOString();
     const arr = pastByWeek.get(w);
     if (arr) arr.push(c);
     else pastByWeek.set(w, [c]);
