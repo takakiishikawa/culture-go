@@ -27,8 +27,10 @@ export const DEFAULT_DIMENSIONS: ScoringDimension[] = [
   {
     id: "default-1",
     label: "影響範囲",
-    description: "国家・業界・地域全体に影響する出来事",
-    rubric: "0=ごく局所的/3=単一国の一部/5=単一国全体/7=複数国・大陸/9=世界全体",
+    description:
+      "カードの scope が示す地域（world=世界 / japan=日本 / vietnam=ベトナム）の中で、どこまで広く影響するか",
+    rubric:
+      "※ scope の地域内で相対評価する（world→世界 / japan→日本 / vietnam→ベトナム）。0=ごく局所的 / 3=地域の一部 / 5=地域の主要部に波及 / 7=地域の広範囲に波及 / 9=地域全体に波及",
     weight: 0.3,
     display_order: 1,
   },

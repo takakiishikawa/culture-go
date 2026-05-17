@@ -49,6 +49,12 @@ export default function SettingsRoute() {
             action={<RunDetectionButton />}
           />
           <Section
+            eyebrow="manual run · local"
+            title="サイゴン・ローカル検出を手動で実行"
+            description="ホーチミンのローカルな話題（実用 / 小ネタ）を検出する。global と同じ週次 cron で自動実行されるが、検証用にここから即時実行できる。"
+            action={<RunDetectionButton channel="hcmc" />}
+          />
+          <Section
             eyebrow="images"
             title="既存カードの画像を補完"
             description="画像が空のカードについて、source の og:image を取得して埋める。新規検出から自動で取得されるが、過去に検出済みのカード向け。"

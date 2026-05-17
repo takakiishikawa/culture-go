@@ -17,6 +17,9 @@ interface Candidate {
   why_important: string;
   source_urls: string[];
   scope: "world" | "japan" | "vietnam";
+  // 同一の出来事を識別するキー。同じ出来事を別アングルで扱った候補が
+  // 複数返ってきたら、このキーで重複を畳む。
+  event_key?: string;
   keywords?: string[];
   tags?: string[];
   // 3 Angles: 主記事を補完する実在の別記事 (UI のサイドレイルから別タブで開く)。
@@ -38,6 +41,7 @@ export interface DetectionSummary {
   skippedBelowThreshold: number;
   skippedLowReliability: number;
   skippedOverWeeklyCap: number;
+  skippedDuplicate: number;
   insertedCardIds: string[];
   errors: string[];
 }
@@ -106,6 +110,15 @@ ${dimensionDescriptions}
 
 特に "構造的変化"（力学が変わるか）の評価を厳格に行うこと。これがこのメディアの核です。
 
+影響範囲（dim_1）は scope 相対で評価すること（重要）:
+- scope=world は「世界全体」を、scope=japan は「日本国内」を、scope=vietnam は「ベトナム国内」を、それぞれ "その地域全体" とみなして相対評価する。
+- 日本国内・ベトナム国内で広く影響する出来事は、世界に波及しなくても dim_1 を高く付けてよい（例: 日本全体に効く制度変更は scope=japan で dim_1=9 相当）。
+- これは「世界スコープでないと低スコアになり、Japan / Vietnam がほぼ配信されない」問題への対応。国内インパクトの大きい出来事を正当に評価すること。
+
+重複させない（重要）:
+- 同じ一つの出来事を複数の候補（別アングル）に分割しない。1 つの出来事につき候補は 1 件に統合し、最も鋭いアングルで 1 枚にまとめる。
+- 同じ出来事を扱う候補には同一の event_key（出来事を識別する英語の短いスラッグ）を必ず付ける。例: 米イラン戦をめぐる軍事・同盟・石油の話はすべて event_key="us-iran-war-2026" のように同一キーにする。
+
 ソース選定の制約（重要）:
 - ペイウォール / 部分閲覧専用の主要サイト (${PAYWALL_HINT_FOR_PROMPT} 等) を一次ソースに置かない。本文が読者に閲覧できないため。
 - 優先順位: ① 一次ソース (政府発表 / 企業 IR / 学術論文 / 公式 PR) → ② 無料公開のニュース通信社 (Reuters, AP, BBC, NHK, 朝日 通常記事, AFP, 共同通信, 時事通信, AlJazeera, DW, France24, 産経) → ③ 信頼性の高い解説媒体の無料記事。
@@ -124,7 +137,8 @@ ${dimensionDescriptions}
 - summary: 何が起きたか（120–200 字）
 - why_important: なぜ世界の方向に効くか（120–200 字、Stratechery 風の構造的視点）
 - source_urls: 一次〜信頼できる二次ソースの URL（複数）
-- scope: world / japan / vietnam
+- scope: world / japan / vietnam（影響範囲 dim_1 はこの scope の地域内で相対評価する）
+- event_key: 出来事を識別する英語の短いスラッグ（例 "us-iran-war-2026"）。同じ出来事を扱う候補は同一キーにし、別アングルで重複カード化しないこと
 - keywords: 5–10 の検索可能キーワード (**全て英語、小文字、1–3 語のフレーズ**。例: "iran war", "energy crisis", "labor movement", "monetary policy"。日本語固有名詞も英語に置き換える。例 "中国共産党" → "chinese communist party")
 - tags: ユーザータグから合致するもの（無くてよい）
 - related_articles: 3 件ちょうど。主記事を補完する**実在の別記事**を web_search で探して URL とソース名を返す。kind は以下 3 種を 1 つずつ:
@@ -185,6 +199,11 @@ ${dimensionDescriptions}
                   type: "string",
                   enum: ["world", "japan", "vietnam"],
                 },
+                event_key: {
+                  type: "string",
+                  description:
+                    "出来事を識別する英語の短いスラッグ。同じ出来事を扱う候補は同一キーにする（重複カード化の防止用）",
+                },
                 keywords: { type: "array", items: { type: "string" } },
                 tags: { type: "array", items: { type: "string" } },
                 related_articles: {
@@ -236,6 +255,7 @@ ${dimensionDescriptions}
                 "why_important",
                 "source_urls",
                 "scope",
+                "event_key",
                 "scores",
               ],
             },
@@ -304,6 +324,7 @@ ${dimensionDescriptions}
     skippedBelowThreshold: 0,
     skippedLowReliability: 0,
     skippedOverWeeklyCap: 0,
+    skippedDuplicate: 0,
     insertedCardIds: [],
     errors: [],
   };
@@ -326,8 +347,31 @@ ${dimensionDescriptions}
     index: i,
   }));
 
-  const passing: Scored[] = [];
+  // 重複排除: 同じ event_key の候補が複数あれば、最高スコアの 1 件だけ残す。
+  // （米イラン戦のような大事件が別アングルで複数カード化するのを防ぐ）
+  const byEventKey = new Map<string, Scored>();
+  const deduped: Scored[] = [];
   for (const s of scored) {
+    const key = s.candidate.event_key?.trim().toLowerCase();
+    if (!key) {
+      deduped.push(s);
+      continue;
+    }
+    const existing = byEventKey.get(key);
+    if (!existing) {
+      byEventKey.set(key, s);
+      deduped.push(s);
+    } else {
+      summary.skippedDuplicate += 1;
+      if (s.score > existing.score) {
+        deduped[deduped.indexOf(existing)] = s;
+        byEventKey.set(key, s);
+      }
+    }
+  }
+
+  const passing: Scored[] = [];
+  for (const s of deduped) {
     if (s.score < SIGNIFICANCE_THRESHOLD) {
       summary.skippedBelowThreshold += 1;
       continue;

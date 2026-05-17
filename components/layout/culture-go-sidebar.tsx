@@ -21,6 +21,7 @@ import {
 import {
   Home,
   Lightbulb,
+  MapPin,
   Moon,
   Settings,
   SlidersHorizontal,
@@ -31,6 +32,7 @@ import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
+  { href: "/local", label: "Saigon Local", icon: MapPin },
   { href: "/tags", label: "Tags", icon: TagsIcon },
 ];
 

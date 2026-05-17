@@ -3,6 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 // culturego スキーマのテーブル型
 export type Scope = "world" | "japan" | "vietnam";
 
+// 配信チャンネル。global=世界の構造シフト / hcmc=ホーチミン・ローカル
+export type Channel = "global" | "hcmc";
+
+// hcmc カードの分類。practical=実用 / trivia=小ネタ
+export type HcmcKind = "practical" | "trivia";
+
 export interface RelatedArticle {
   title: string;
   url: string;
@@ -24,6 +30,8 @@ export interface Card {
   source_urls: string[];
   hero_image_url: string | null;
   scope: Scope;
+  channel: Channel;
+  hcmc_kind: HcmcKind | null;
   keywords: string[];
   related_articles: RelatedArticle[];
   published_at: string;

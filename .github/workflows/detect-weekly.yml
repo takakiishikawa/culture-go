@@ -34,3 +34,14 @@ jobs:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           DETECT_LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days || '7' }}
         run: npm run detect
+
+      - name: Run HCMC local detection
+        # global 検出が失敗してもローカル検出は独立して走らせる
+        if: always()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          DETECT_LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days || '7' }}
+        run: npm run detect:hcmc

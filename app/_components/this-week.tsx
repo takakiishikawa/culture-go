@@ -142,16 +142,22 @@ function AnglesTrigger({
   );
 }
 
+// world/japan/vietnam = global チャンネルの scope。
+// practical/trivia = ホーチミン・ローカルの hcmc_kind。同じバッジ枠を共有する。
 const SCOPE_COLOR = {
   world: "#1A2B4A",
   japan: "#8B0000",
   vietnam: "#2D5016",
+  practical: "#8A5A12",
+  trivia: "#9A3B6E",
 } as const;
 
 const SCOPE_LABEL = {
   world: "WORLD",
   japan: "JAPAN",
   vietnam: "VIETNAM",
+  practical: "USEFUL",
+  trivia: "FUN",
 } as const;
 
 export interface RelatedArticle {
@@ -168,7 +174,7 @@ export interface ThisWeekCardData {
   why_important: string;
   source_urls: string[];
   hero_image_url: string | null;
-  scope: "world" | "japan" | "vietnam";
+  scope: "world" | "japan" | "vietnam" | "practical" | "trivia";
   keywords: string[];
   significance_score: number;
   related: RelatedArticle[];
@@ -179,27 +185,46 @@ export interface ThisWeekCardData {
 }
 
 function buildClaudePromptUrl(card: ThisWeekCardData): string {
-  const prompt = [
-    "以下の出来事について、対話を通して理解を深めたい。",
-    "",
-    "【culturego について】",
-    "culturego は「世界の進む方向を読む」ためのスローメディア。",
-    "力学が変わる構造的な出来事だけをスコアリングで抽出している。",
-    "この記事は「力学が変わる出来事」として検出されたもの。",
-    "",
-    "【記事】",
-    `タイトル: ${card.title}`,
-    `要約: ${card.summary}`,
-    `主要ソース: ${card.source_urls[0] ?? ""}`,
-    "",
-    "【対話したい論点(例)】",
-    "- そもそもこの事象の理解(背景・経緯)",
-    "- 世界・日本・ベトナムの構造がどう変わりうるか",
-    "- この先どのようなことが起きうるか",
-    "",
-    "【対話したいこと】",
-    "",
-  ].join("\n");
+  const isLocal = card.scope === "practical" || card.scope === "trivia";
+  const prompt = (
+    isLocal
+      ? [
+          "以下はホーチミン(サイゴン)のローカルな話題。対話を通して深掘りしたい。",
+          "",
+          "【culturego サイゴン・ローカルについて】",
+          "culturego のサイゴン・ローカルは、ホーチミンで暮らす上で",
+          "知っておくと役立つこと・会話のネタになる面白いことを週1で集めるコーナー。",
+          "",
+          "【話題】",
+          `タイトル: ${card.title}`,
+          `要約: ${card.summary}`,
+          `主要ソース: ${card.source_urls[0] ?? ""}`,
+          "",
+          "【対話したいこと】",
+          "",
+        ]
+      : [
+          "以下の出来事について、対話を通して理解を深めたい。",
+          "",
+          "【culturego について】",
+          "culturego は「世界の進む方向を読む」ためのスローメディア。",
+          "力学が変わる構造的な出来事だけをスコアリングで抽出している。",
+          "この記事は「力学が変わる出来事」として検出されたもの。",
+          "",
+          "【記事】",
+          `タイトル: ${card.title}`,
+          `要約: ${card.summary}`,
+          `主要ソース: ${card.source_urls[0] ?? ""}`,
+          "",
+          "【対話したい論点(例)】",
+          "- そもそもこの事象の理解(背景・経緯)",
+          "- 世界・日本・ベトナムの構造がどう変わりうるか",
+          "- この先どのようなことが起きうるか",
+          "",
+          "【対話したいこと】",
+          "",
+        ]
+  ).join("\n");
   return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
 }
 

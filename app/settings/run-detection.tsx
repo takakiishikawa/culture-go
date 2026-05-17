@@ -4,8 +4,13 @@ import { Button, toast } from "@takaki/go-design-system";
 import { Play } from "lucide-react";
 import { useState } from "react";
 
-export function RunDetectionButton() {
+export function RunDetectionButton({
+  channel = "global",
+}: {
+  channel?: "global" | "hcmc";
+}) {
   const [loading, setLoading] = useState(false);
+  const label = channel === "hcmc" ? "ローカル検出" : "検出";
 
   async function run() {
     setLoading(true);
@@ -14,7 +19,7 @@ export function RunDetectionButton() {
       const res = await fetch("/api/detect", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ lookbackDays: 7 }),
+        body: JSON.stringify({ lookbackDays: 7, channel }),
       });
 
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
@@ -24,7 +29,7 @@ export function RunDetectionButton() {
       if (!contentType.includes("application/json")) {
         const text = (await res.text()).slice(0, 200);
         toast.error(
-          `検出に失敗 (HTTP ${res.status}, ${elapsed}s): ${text || "non-JSON response"}`,
+          `${label}に失敗 (HTTP ${res.status}, ${elapsed}s): ${text || "non-JSON response"}`,
         );
         return;
       }
@@ -38,18 +43,21 @@ export function RunDetectionButton() {
               skippedBelowThreshold: number;
               skippedLowReliability: number;
               skippedOverWeeklyCap: number;
+              skippedDuplicate?: number;
               errors: string[];
             };
           }
         | { ok: false; error: string };
 
       if (!data.ok) {
-        toast.error(`検出に失敗: ${data.error}`);
+        toast.error(`${label}に失敗: ${data.error}`);
         return;
       }
       const s = data.summary;
+      const dup =
+        s.skippedDuplicate != null ? ` / 重複統合 ${s.skippedDuplicate}` : "";
       toast.success(
-        `検出完了 (${elapsed}s): ${s.inserted} 件登録 / 候補 ${s.candidatesGenerated} / 閾値未満 ${s.skippedBelowThreshold} / 信頼性不足 ${s.skippedLowReliability} / 週次キャップ超え ${s.skippedOverWeeklyCap}`,
+        `${label}完了 (${elapsed}s): ${s.inserted} 件登録 / 候補 ${s.candidatesGenerated} / 閾値未満 ${s.skippedBelowThreshold} / 信頼性不足 ${s.skippedLowReliability} / 週次キャップ超え ${s.skippedOverWeeklyCap}${dup}`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "ネットワークエラー";
@@ -59,7 +67,7 @@ export function RunDetectionButton() {
         message === "Failed to fetch"
           ? `（${elapsed}s で接続が切れた。Vercel 関数タイムアウト 60s の可能性が高い）`
           : "";
-      toast.error(`検出に失敗: ${message}${hint}`);
+      toast.error(`${label}に失敗: ${message}${hint}`);
     } finally {
       setLoading(false);
     }
@@ -68,7 +76,7 @@ export function RunDetectionButton() {
   return (
     <Button onClick={run} disabled={loading}>
       <Play className="h-4 w-4" />
-      {loading ? "検出中…" : "検出を今すぐ実行"}
+      {loading ? `${label}中…` : `${label}を今すぐ実行`}
     </Button>
   );
 }
