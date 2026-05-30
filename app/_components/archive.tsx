@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { markCardDiscussed, markCardRead } from "@/app/_actions/cards";
+import {
+  buildClaudePromptUrl as buildClaudeUrl,
+  variantFromScope,
+} from "@/lib/claude-prompt";
 
 // world/japan/vietnam = global チャンネルの scope。
 // practical/trivia = サイゴン・シフトの hcmc_kind。
@@ -104,65 +108,7 @@ function ClaudeGlyph({ size = 11 }: { size?: number }) {
 }
 
 function buildClaudePromptUrl(card: ArchiveCardData): string {
-  const isShift = card.scope === "practical" || card.scope === "trivia";
-  const isLiving =
-    card.scope === "place" || card.scope === "person" || card.scope === "ritual";
-  const prompt = (
-    isLiving
-      ? [
-          "以下はホーチミン(サイゴン)の暮らしのテクスチャを切り取った記事。対話を通して深掘りしたい。",
-          "",
-          "【culturego サイゴン・リビングについて】",
-          "culturego のサイゴン・リビングは、ホーチミンで今どう暮らしているかを",
-          "場所・人・習慣の物語として週1で切り取るコーナー。",
-          "",
-          "【記事】",
-          `タイトル: ${card.title}`,
-          `要約: ${card.summary ?? ""}`,
-          `主要ソース: ${card.source_urls[0] ?? ""}`,
-          "",
-          "【対話したいこと】",
-          "",
-        ]
-      : isShift
-      ? [
-          "以下はホーチミン(サイゴン)のローカルな話題。対話を通して深掘りしたい。",
-          "",
-          "【culturego サイゴン・シフトについて】",
-          "culturego のサイゴン・シフトは、ホーチミンで暮らす上で",
-          "知っておくと役立つこと・会話のネタになる面白いことを週1で集めるコーナー。",
-          "",
-          "【話題】",
-          `タイトル: ${card.title}`,
-          `要約: ${card.summary ?? ""}`,
-          `主要ソース: ${card.source_urls[0] ?? ""}`,
-          "",
-          "【対話したいこと】",
-          "",
-        ]
-      : [
-          "以下の出来事について、対話を通して理解を深めたい。",
-          "",
-          "【culturego について】",
-          "culturego は「世界の進む方向を読む」ためのスローメディア。",
-          "力学が変わる構造的な出来事だけをスコアリングで抽出している。",
-          "この記事は「力学が変わる出来事」として検出されたもの。",
-          "",
-          "【記事】",
-          `タイトル: ${card.title}`,
-          `要約: ${card.summary ?? ""}`,
-          `主要ソース: ${card.source_urls[0] ?? ""}`,
-          "",
-          "【対話したい論点(例)】",
-          "- そもそもこの事象の理解(背景・経緯)",
-          "- 世界・日本・ベトナムの構造がどう変わりうるか",
-          "- この先どのようなことが起きうるか",
-          "",
-          "【対話したいこと】",
-          "",
-        ]
-  ).join("\n");
-  return `https://claude.ai/new?q=${encodeURIComponent(prompt)}`;
+  return buildClaudeUrl(variantFromScope(card.scope), card);
 }
 
 function RowDiscussButton({
