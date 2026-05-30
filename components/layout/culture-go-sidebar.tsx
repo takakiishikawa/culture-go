@@ -25,6 +25,7 @@ import {
   Moon,
   Settings,
   SlidersHorizontal,
+  Sofa,
   Sun,
   Tags as TagsIcon,
 } from "lucide-react";
@@ -32,7 +33,8 @@ import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/local", label: "Saigon Local", icon: MapPin },
+  { href: "/local", label: "Saigon Shift", icon: MapPin },
+  { href: "/living", label: "Saigon Living", icon: Sofa },
   { href: "/tags", label: "Tags", icon: TagsIcon },
 ];
 

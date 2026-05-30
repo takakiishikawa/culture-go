@@ -143,13 +143,18 @@ function AnglesTrigger({
 }
 
 // world/japan/vietnam = global チャンネルの scope。
-// practical/trivia = ホーチミン・ローカルの hcmc_kind。同じバッジ枠を共有する。
+// practical/trivia = サイゴン・シフトの hcmc_kind。
+// place/person/ritual = サイゴン・リビングの living_kind。
+// すべて同じバッジ枠を共有する。
 const SCOPE_COLOR = {
   world: "#1A2B4A",
   japan: "#8B0000",
   vietnam: "#2D5016",
   practical: "#8A5A12",
   trivia: "#9A3B6E",
+  place: "#1F5F5B",
+  person: "#5A3D8A",
+  ritual: "#7A4A1A",
 } as const;
 
 const SCOPE_LABEL = {
@@ -158,6 +163,9 @@ const SCOPE_LABEL = {
   vietnam: "VIETNAM",
   practical: "USEFUL",
   trivia: "FUN",
+  place: "PLACE",
+  person: "PERSON",
+  ritual: "RITUAL",
 } as const;
 
 export interface RelatedArticle {
@@ -174,7 +182,15 @@ export interface ThisWeekCardData {
   why_important: string;
   source_urls: string[];
   hero_image_url: string | null;
-  scope: "world" | "japan" | "vietnam" | "practical" | "trivia";
+  scope:
+    | "world"
+    | "japan"
+    | "vietnam"
+    | "practical"
+    | "trivia"
+    | "place"
+    | "person"
+    | "ritual";
   keywords: string[];
   significance_score: number;
   related: RelatedArticle[];
@@ -185,14 +201,32 @@ export interface ThisWeekCardData {
 }
 
 function buildClaudePromptUrl(card: ThisWeekCardData): string {
-  const isLocal = card.scope === "practical" || card.scope === "trivia";
+  const isShift = card.scope === "practical" || card.scope === "trivia";
+  const isLiving =
+    card.scope === "place" || card.scope === "person" || card.scope === "ritual";
   const prompt = (
-    isLocal
+    isLiving
+      ? [
+          "以下はホーチミン(サイゴン)の暮らしのテクスチャを切り取った記事。対話を通して深掘りしたい。",
+          "",
+          "【culturego サイゴン・リビングについて】",
+          "culturego のサイゴン・リビングは、ホーチミンで今どう暮らしているかを",
+          "場所・人・習慣の物語として週1で切り取るコーナー。",
+          "",
+          "【記事】",
+          `タイトル: ${card.title}`,
+          `要約: ${card.summary}`,
+          `主要ソース: ${card.source_urls[0] ?? ""}`,
+          "",
+          "【対話したいこと】",
+          "",
+        ]
+      : isShift
       ? [
           "以下はホーチミン(サイゴン)のローカルな話題。対話を通して深掘りしたい。",
           "",
-          "【culturego サイゴン・ローカルについて】",
-          "culturego のサイゴン・ローカルは、ホーチミンで暮らす上で",
+          "【culturego サイゴン・シフトについて】",
+          "culturego のサイゴン・シフトは、ホーチミンで暮らす上で",
           "知っておくと役立つこと・会話のネタになる面白いことを週1で集めるコーナー。",
           "",
           "【話題】",

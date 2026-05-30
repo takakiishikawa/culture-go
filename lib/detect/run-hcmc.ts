@@ -3,9 +3,10 @@ import type { CulturegoClient } from "@/lib/supabase/types";
 import { fetchOgImage, fetchUnsplashImage } from "./extract-image";
 import { isPaywallUrl, PAYWALL_HINT_FOR_PROMPT } from "./paywall-domains";
 
-// ホーチミン・ローカル検出。
+// サイゴン・シフト検出（DB の channel 値は歴史的に "hcmc" のまま）。
 // global の「世界の構造シフト」とは評価軸が別物: ここは「ホーチミンで暮らす上で
 // 役立つか（practical / 実用）」「会話のネタになる面白さがあるか（trivia / 小ネタ）」で選ぶ。
+// 暮らしのテクスチャ（場所・人・習慣）は別チャンネル hcmc_living = サイゴン・リビングで扱う。
 interface HcmcCandidate {
   title: string;
   summary: string;
@@ -69,13 +70,15 @@ export async function runHcmcDetection(
   const cfg = CONFIGS[opts.mode ?? "full"];
   const anthropic = new Anthropic();
 
-  const systemPrompt = `あなたは "culturego" の「サイゴン・ローカル」担当編集者です。ホーチミン市（サイゴン）で暮らす人に向けて、週1で「ローカルな話題」を選び抜きます。
+  const systemPrompt = `あなたは "culturego" の「サイゴン・シフト」担当編集者です。ホーチミン市（サイゴン）で暮らす人に向けて、週1で街の「動き・変化・告知」を選び抜きます。
 
 選定基準は次の 2 種類のいずれか:
 - practical（実用）: ホーチミンで生活する上で知っておくと役立つこと。行政・制度・物価・交通・インフラ・治安・天候・営業/休業・新店や閉店・大型イベントの開催情報など、生活判断に効くもの。
 - trivia（小ネタ）: 会話のネタになる、面白い・楽しい・意外なローカルの話題。食・文化・街の出来事・流行・歴史こぼれ話など。
 
 ここは「世界の構造シフト」を選ぶコーナーではありません。あくまでローカルで、暮らしに役立つか／話して面白いかだけで選ぶこと。瑣末に見えても生活実感に効く・ネタになるなら採ってよい。逆に、ホーチミン在住者の生活・会話と関係の薄いものは外す。日本・世界の大きなニュースはここでは扱わない。
+
+なお、暮らしの "状態 / テクスチャ"（特定の場所・人・習慣の物語）は別チャンネルの「サイゴン・リビング」が担当する。Shift は "動いたこと / 変わったこと" だけを扱うこと。
 
 ソース選定:
 - 優先: VnExpress International (e.vnexpress.net), Tuoi Tre News, Thanh Nien, Vietnam News, Saigoneer, ベトナム政府・ホーチミン市当局の公式発表, Reuters / AP のベトナム関連記事。
@@ -103,7 +106,7 @@ value_score が ${HCMC_THRESHOLD} 未満の弱い話題は無理に挙げない�
   const tools: ToolDef[] = [
     {
       name: "submit_hcmc_candidates",
-      description: "検出したホーチミン・ローカルの候補をスコア付きで提出する",
+      description: "検出したサイゴン・シフト（動き・変化・告知）の候補をスコア付きで提出する",
       input_schema: {
         type: "object",
         properties: {

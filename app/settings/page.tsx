@@ -49,10 +49,16 @@ export default function SettingsRoute() {
             action={<RunDetectionButton />}
           />
           <Section
-            eyebrow="manual run · local"
-            title="サイゴン・ローカル検出を手動で実行"
-            description="ホーチミンのローカルな話題（実用 / 小ネタ）を検出する。global と同じ週次 cron で自動実行されるが、検証用にここから即時実行できる。"
+            eyebrow="manual run · shift"
+            title="サイゴン・シフト検出を手動で実行"
+            description="ホーチミンの動き・変化・告知（実用 / 小ネタ）を検出する。global と同じ週次 cron で自動実行されるが、検証用にここから即時実行できる。"
             action={<RunDetectionButton channel="hcmc" />}
+          />
+          <Section
+            eyebrow="manual run · living"
+            title="サイゴン・リビング検出を手動で実行"
+            description="ホーチミンの暮らしのテクスチャ（場所・人・習慣）を検出する。Shift とは別ロジックで、出来事ではなく状態を切り取る。週次 cron で自動実行される。"
+            action={<RunDetectionButton channel="hcmc_living" />}
           />
           <Section
             eyebrow="images"

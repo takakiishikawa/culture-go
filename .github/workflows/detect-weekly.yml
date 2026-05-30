@@ -9,14 +9,37 @@ on:
   workflow_dispatch:
     inputs:
       lookback_days:
-        description: "lookback (days)"
+        description: "lookback (days, default 7)"
         required: false
         default: "7"
+      living_lookback_days:
+        description: "Living lookback (days, default 45)"
+        required: false
+        default: "45"
+      living_override_published_at:
+        description: "Living override published_at (ISO8601, optional; backfill 特定週用)"
+        required: false
+        default: ""
+      run_global:
+        description: "Run global detection"
+        required: false
+        type: boolean
+        default: true
+      run_shift:
+        description: "Run Saigon Shift (hcmc) detection"
+        required: false
+        type: boolean
+        default: true
+      run_living:
+        description: "Run Saigon Living detection"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   detect:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,7 +47,8 @@ jobs:
           node-version: "24"
           cache: "npm"
       - run: npm ci
-      - name: Run detection
+      - name: Run global detection
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.run_global == 'true' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -35,9 +59,9 @@ jobs:
           DETECT_LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days || '7' }}
         run: npm run detect
 
-      - name: Run HCMC local detection
-        # global 検出が失敗してもローカル検出は独立して走らせる
-        if: always()
+      - name: Run Saigon Shift (hcmc) detection
+        # global 検出が失敗してもシフト検出は独立して走らせる
+        if: ${{ always() && (github.event_name == 'schedule' || github.event.inputs.run_shift == 'true') }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -45,3 +69,15 @@ jobs:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           DETECT_LOOKBACK_DAYS: ${{ github.event.inputs.lookback_days || '7' }}
         run: npm run detect:hcmc
+
+      - name: Run Saigon Living detection
+        # 前段が失敗してもリビング検出は独立して走らせる
+        if: ${{ always() && (github.event_name == 'schedule' || github.event.inputs.run_living == 'true') }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          DETECT_LOOKBACK_DAYS: ${{ github.event.inputs.living_lookback_days || '45' }}
+          LIVING_OVERRIDE_PUBLISHED_AT: ${{ github.event.inputs.living_override_published_at || '' }}
+        run: npm run detect:living

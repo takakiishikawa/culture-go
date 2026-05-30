@@ -9,6 +9,7 @@
     "lint": "eslint",
     "detect": "tsx scripts/detect-events.ts",
     "detect:hcmc": "tsx scripts/detect-hcmc.ts",
+    "detect:living": "tsx scripts/detect-living.ts",
     "refetch-image": "tsx scripts/refetch-image.ts"
   },
   "dependencies": {

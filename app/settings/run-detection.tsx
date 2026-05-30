@@ -7,10 +7,15 @@ import { useState } from "react";
 export function RunDetectionButton({
   channel = "global",
 }: {
-  channel?: "global" | "hcmc";
+  channel?: "global" | "hcmc" | "hcmc_living";
 }) {
   const [loading, setLoading] = useState(false);
-  const label = channel === "hcmc" ? "ローカル検出" : "検出";
+  const label =
+    channel === "hcmc_living"
+      ? "リビング検出"
+      : channel === "hcmc"
+      ? "シフト検出"
+      : "検出";
 
   async function run() {
     setLoading(true);

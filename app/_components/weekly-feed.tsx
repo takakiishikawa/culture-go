@@ -9,10 +9,10 @@ import {
 } from "@/app/_components/this-week";
 import { Archive, type ArchiveCardData } from "@/app/_components/archive";
 
-// global（世界の構造シフト）と hcmc（ホーチミン・ローカル）で共有する週次フィード。
+// 3 チャンネル（global / hcmc / hcmc_living）で共有する週次フィード。
 // ページ側は channel と表示文言を渡すだけ。
 
-type Channel = "global" | "hcmc";
+type Channel = "global" | "hcmc" | "hcmc_living";
 
 interface RawCard {
   id: string;
@@ -23,6 +23,7 @@ interface RawCard {
   hero_image_url: string | null;
   scope: "world" | "japan" | "vietnam";
   hcmc_kind: "practical" | "trivia" | null;
+  living_kind: "place" | "person" | "ritual" | null;
   keywords: string[] | null;
   significance_score: number;
   published_at: string;
@@ -42,9 +43,9 @@ function pickMeta(c: RawCard) {
   return m;
 }
 
-// バッジに使う区分。global は scope、hcmc は hcmc_kind を採用する。
+// バッジに使う区分。global は scope、hcmc は hcmc_kind、hcmc_living は living_kind。
 function badgeScope(c: RawCard): ThisWeekCardData["scope"] {
-  return c.hcmc_kind ?? c.scope;
+  return c.living_kind ?? c.hcmc_kind ?? c.scope;
 }
 
 // 週バケット: ICT (UTC+7) の Mon-Sun 切り。
@@ -143,7 +144,7 @@ export async function WeeklyFeed({
     .from("cards")
     .select(
       `id, title, summary, why_important, source_urls, hero_image_url,
-       scope, hcmc_kind, keywords, significance_score, published_at, related_articles,
+       scope, hcmc_kind, living_kind, keywords, significance_score, published_at, related_articles,
        card_metadata ( is_read, updated_at, discussed_at )`,
     )
     .eq("channel", channel)
