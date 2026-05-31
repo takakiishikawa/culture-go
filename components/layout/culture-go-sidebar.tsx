@@ -30,20 +30,46 @@ import {
   Tags as TagsIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { UnreadCounts } from "@/lib/unread-counts";
 
-const navItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/local", label: "Saigon Shift", icon: MapPin },
-  { href: "/living", label: "Saigon Living", icon: Sofa },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof Home;
+  // 該当チャンネルの未読数を取り出す key。Tags のような非カードページは undefined。
+  unreadKey?: keyof UnreadCounts;
+};
+
+const navItems: NavItem[] = [
+  { href: "/", label: "Home", icon: Home, unreadKey: "global" },
+  { href: "/local", label: "Saigon Shift", icon: MapPin, unreadKey: "hcmc" },
+  { href: "/living", label: "Saigon Living", icon: Sofa, unreadKey: "hcmc_living" },
   { href: "/tags", label: "Tags", icon: TagsIcon },
 ];
+
+// 今週の未読数バッジ。filled な濃色丸 + 数字白抜き。0 は描かない。
+function UnreadBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={`${count} unread`}
+      className="ml-auto inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#1A1A1A] px-1 text-[10px] font-semibold leading-none text-white tabular-nums dark:bg-white dark:text-[#1A1A1A] group-data-[collapsible=icon]:hidden"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 function isActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function CultureGoSidebar() {
+export function CultureGoSidebar({
+  unreadCounts,
+}: {
+  unreadCounts?: UnreadCounts | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -109,16 +135,20 @@ export function CultureGoSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map(({ href, label, icon: Icon }) => (
-                <SidebarMenuItem key={href}>
-                  <SidebarMenuButton asChild isActive={isActive(href, pathname)}>
-                    <Link href={href}>
-                      <Icon className="h-4 w-4 shrink-0" />
-                      {label}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navItems.map(({ href, label, icon: Icon, unreadKey }) => {
+                const count = unreadKey ? unreadCounts?.[unreadKey] ?? 0 : 0;
+                return (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton asChild isActive={isActive(href, pathname)}>
+                      <Link href={href}>
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span>{label}</span>
+                        <UnreadBadge count={count} />
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -5,6 +5,7 @@ import { AppLayout, DesignTokens } from "@takaki/go-design-system";
 import { ClientProviders } from "./client-providers";
 import { CultureGoSidebar } from "@/components/layout/culture-go-sidebar";
 import { createClient } from "@/lib/supabase/server";
+import { fetchUnreadCounts } from "@/lib/unread-counts";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,6 +34,7 @@ export default async function RootLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const unreadCounts = user ? await fetchUnreadCounts(supabase) : null;
 
   return (
     <html
@@ -50,7 +52,9 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full">
         {user ? (
-          <AppLayout sidebar={<CultureGoSidebar />}>{children}</AppLayout>
+          <AppLayout sidebar={<CultureGoSidebar unreadCounts={unreadCounts} />}>
+            {children}
+          </AppLayout>
         ) : (
           <main>{children}</main>
         )}
