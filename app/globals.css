@@ -2,8 +2,6 @@
 @source "../node_modules/@takaki/go-design-system/dist";
 @import "@takaki/go-design-system/theme.css";
 
-@variant dark (&:where(.dark, .dark *));
-
 /* ── culturego — cg-* エイリアス（DS トークンへのプロダクト固有名） ── */
 :root {
   --cg-text: var(--color-text-primary);

@@ -43,11 +43,6 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var s=localStorage.getItem('cg-theme');var d=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.classList.add(d);})();`,
-          }}
-        />
         <DesignTokens primaryColor="#1F2937" primaryColorHover="#0F172A" />
       </head>
       <body className="min-h-full">

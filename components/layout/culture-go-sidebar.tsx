@@ -22,11 +22,9 @@ import {
   Home,
   Lightbulb,
   MapPin,
-  Moon,
   Settings,
   SlidersHorizontal,
   Sofa,
-  Sun,
   Tags as TagsIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -53,7 +51,7 @@ function UnreadBadge({ count }: { count: number }) {
   return (
     <span
       aria-label={`${count} unread`}
-      className="ml-auto inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#1A1A1A] px-1 text-[10px] font-semibold leading-none text-white tabular-nums dark:bg-white dark:text-[#1A1A1A] group-data-[collapsible=icon]:hidden"
+      className="ml-auto inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#1A1A1A] px-1 text-[10px] font-semibold leading-none text-white tabular-nums group-data-[collapsible=icon]:hidden"
     >
       {count > 99 ? "99+" : count}
     </span>
@@ -77,7 +75,6 @@ export function CultureGoSidebar({
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [isDark, setIsDark] = useState(false);
 
   const weekLabel = useMemo(() => {
     const d = new Date();
@@ -100,22 +97,7 @@ export function CultureGoSidebar({
       setEmail(user.email ?? "");
       setAvatarUrl(user.user_metadata?.avatar_url ?? "");
     });
-    const update = () =>
-      setIsDark(document.documentElement.classList.contains("dark"));
-    update();
-    const obs = new MutationObserver(update);
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => obs.disconnect();
   }, [supabase]);
-
-  function toggleTheme() {
-    const next = isDark ? "light" : "dark";
-    localStorage.setItem("cg-theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
-  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -186,11 +168,6 @@ export function CultureGoSidebar({
               icon: Settings,
               onSelect: () => router.push("/settings"),
               isActive: pathname.startsWith("/settings"),
-            },
-            {
-              title: isDark ? "Dark" : "Light",
-              icon: isDark ? Moon : Sun,
-              onSelect: toggleTheme,
             },
           ]}
           signOut={{ onSelect: handleSignOut }}
